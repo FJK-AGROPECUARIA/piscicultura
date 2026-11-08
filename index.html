@@ -318,7 +318,7 @@ body.naInicio .gIniBar{display:none}
 .relPrev{border:2px solid var(--accent);border-top:0;border-radius:0 0 12px 12px;margin-top:-12px;padding:12px;display:flex;flex-direction:column;gap:10px;background:#fbfcfe}
 .faixaVer{display:flex;justify-content:space-between;align-items:center;gap:8px;background:#5f6b73;color:#fff;border-radius:12px;padding:8px 12px;font-weight:700;font-size:.9rem}
 
-.stat b{font-size:clamp(1rem,4.6vw,1.6rem)!important;white-space:nowrap;display:block;overflow:hidden;text-overflow:ellipsis}
+.stat b{font-size:clamp(1rem,4.6vw,1.6rem);white-space:nowrap;display:block;overflow:hidden;text-overflow:clip}
 .pesoLinha input.big{font-size:1.8rem}
 .icoRede{width:1.5em;height:1.5em;vertical-align:-.35em;color:#fff}.gIniBar .icoRede{width:1.25em;height:1.25em;vertical-align:-.3em}
 .atalhos{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 2px}.atalhos .mini{flex:1 1 0;min-width:0;padding:8px 4px;font-size:.85rem;border-radius:10px}.atalhos .mini.sel{background:var(--accent);border-color:var(--accent);color:#fff}
@@ -331,6 +331,12 @@ body.naInicio .gIniBar{display:none}
 .comboLista button small{display:block;font-weight:500;font-size:.8rem;color:var(--muted);margin-top:2px}.comboLista button.venc small{color:var(--bad)}.comboLista button.sel small{color:#e3eefb}.cliCombo .comboLista{max-height:320px}
 .atalhos .mini{white-space:nowrap;font-size:.8rem;padding:8px 2px}
 .calJan{max-width:360px}.calCab{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}.calCab b{font-size:1.1rem}.calCab button{width:46px;min-height:40px;padding:0;background:var(--accent);border-color:var(--accent);color:#fff;border-radius:10px}.calSem,.calDias{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}.calSem span{font-size:.75rem;font-weight:800;color:var(--muted)}.calDias button{min-height:40px;padding:0;margin:0;border-radius:8px;font-weight:700}.calDias button.hoje{border-color:var(--accent);color:var(--accent)}.calDias button.sel{background:var(--accent);border-color:var(--accent);color:#fff}.cal .row{margin-top:10px}
+/* quadros dos menus: ícone sempre do mesmo tamanho em cima e o nome começando na mesma altura */
+.gTiles button,.gCfgTiles button{justify-content:flex-start!important;text-align:center;line-height:1.15}
+.gTiles button{padding-top:22px!important}.gCfgTiles button{padding-top:14px!important}
+.gTiles .gIc,.gCfgTiles .gIc{display:flex;align-items:center;justify-content:center;flex:none;width:3.2rem;height:3.2rem;font-size:2.5rem!important;line-height:1}
+.gCfgTiles .gIc{width:2.4rem;height:2.4rem;font-size:1.9rem!important}
+.gIc .icoRede{width:100%!important;height:100%!important;vertical-align:0}
 </style>
 </head>
 <body class="naInicio">
@@ -434,7 +440,7 @@ body.naInicio .gIniBar{display:none}
    ===================================================================== */
 const PRAZO=5*60*1000; // quem lançou pode editar/excluir por 5 minutos sem senha
 const API_PADRAO='https://script.google.com/macros/s/AKfycbwcOrQCcLUC2FmLZPAGfmJNChxdtbh80tajcaMXLvrJaAqedwJXFuZCsDIaxQl2E67gIw/exec'; // link do Google Script (/exec) — colar aqui depois de publicar o Code.gs
-const VERSAO='12';
+const VERSAO='13';
 const K={cad:'pc_cad',db:'pc_db',fila:'pc_fila',pend:'pc_pend',api:'pc_api',disp:'pc_disp',quem:'pc_quem',rascV:'pc_rascV',sync:'pc_sync',gest:'pc_gestOk'};
 const TABS=['vendas','receb','ajustes','bags','doacoes','custos','repasses'];
 const CATS=['Ração','Oxigênio / Aeração','Combustível / Transporte','Gelo','Mão de obra (fixa)','Mão de obra (diárias)','Insumos veterinários','Energia elétrica','Manutenção / Equipamentos','Alimentação','Hospedagem','Despesas administrativas','Investimentos','Outros'];

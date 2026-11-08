@@ -297,7 +297,7 @@ ACOES.gcust={cat(v){gk.f.cat=v;gk.f.catTxt=null;render()},catEsc(v){gk.f.cat=v;g
    ===================================================================== */
 const ga={per:'mes',de:'',ate:'',vend:'',f:null};
 const repNovo=()=>({data:chaveDia(),valor:'',forma:'PIX',doc:'',recPor:'',obs:''});
-ENTRAR.gacer=()=>{ga.aberto=false;aplicaPer(ga,'mes');ga.f=repNovo()};
+ENTRAR.gacer=()=>{ga.aberto=false;aplicaPer(ga,'7');ga.f=repNovo()};
 function acerto(){
   const dV=x=>!ga.vend||x===ga.vend,ant=k=>ga.de&&k<ga.de,per=k=>noPer(ga,k);
   const soma=(l,f)=>r2(l.filter(f).reduce((s,x)=>s+Number(x.valor||0),0));
@@ -750,6 +750,11 @@ ACOES.greceb={per(v){aplicaPer(gr2,v);render()},novoRec(){if(!quem()){escolherQu
     const r={titulo:'Recebimentos',sub:[rotPer(gr2.de,gr2.ate),c?c.nome:'',gr2.forma].filter(Boolean),xlsNome:'Recebimentos',blocos:[{kv:[['Recebimentos',String(l.length)],['Total recebido',fmtR(tot),'#1f8f4e',true]]},
       {cols:[{t:'Data',w:11},{t:'Cliente',w:32},{t:'Forma',w:14},{t:'Doc.',w:12},{t:'Vendedor',w:14},{t:'Valor',w:14,al:'r'}],linhas:l.map(r=>[fmtData(r.data),r.cliente,r.forma||'',r.doc||'',r.vendedor||'',fmtR(r.valor)]),total:['TOTAL','','','','',fmtR(tot)]}]};
     return exportarRel(r,t,`Recebimentos ${rotPer(gr2.de,gr2.ate).replace(/\//g,'-')}`)}};
+
+/* números dos quadradinhos: diminui a letra até caber (sem cortar com "…") */
+function ajustaNums(){document.querySelectorAll('.tela:not([hidden]) .stat b').forEach(b=>{b.style.fontSize='';let f=parseFloat(getComputedStyle(b).fontSize),n=0;while(b.scrollWidth>b.clientWidth+1&&f>8&&n<40){f-=1;b.style.fontSize=f+'px';n++}})}
+{const _r=render;render=function(){_r();ajustaNums()}}
+addEventListener('resize',()=>ajustaNums());
 
 /* ---------- início ---------- */
 marcaAtualizado();marcaQuem();statusNuvem();carregar();
