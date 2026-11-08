@@ -440,12 +440,12 @@ body.naInicio .gIniBar{display:none}
    ===================================================================== */
 const PRAZO=5*60*1000; // quem lançou pode editar/excluir por 5 minutos sem senha
 const API_PADRAO='https://script.google.com/macros/s/AKfycbwcOrQCcLUC2FmLZPAGfmJNChxdtbh80tajcaMXLvrJaAqedwJXFuZCsDIaxQl2E67gIw/exec'; // link do Google Script (/exec) — colar aqui depois de publicar o Code.gs
-const VERSAO='13';
+const VERSAO='14';
 const K={cad:'pc_cad',db:'pc_db',fila:'pc_fila',pend:'pc_pend',api:'pc_api',disp:'pc_disp',quem:'pc_quem',rascV:'pc_rascV',sync:'pc_sync',gest:'pc_gestOk'};
 const TABS=['vendas','receb','ajustes','bags','doacoes','custos','repasses'];
 const CATS=['Ração','Oxigênio / Aeração','Combustível / Transporte','Gelo','Mão de obra (fixa)','Mão de obra (diárias)','Insumos veterinários','Energia elétrica','Manutenção / Equipamentos','Alimentação','Hospedagem','Despesas administrativas','Investimentos','Outros'];
 const CONDICOES=['A PRAZO','PIX','DINHEIRO','CARTÃO','BOLETO'];
-const FORMAS=['PIX','DINHEIRO','TRANSFERÊNCIA','DEPÓSITO','CARTÃO','CHEQUE'];
+const FORMAS=['PIX','DINHEIRO','CHEQUE'];
 const FAIXAS=[[1,15,'01 a 15 dias'],[16,30,'16 a 30 dias'],[31,60,'31 a 60 dias'],[61,90,'61 a 90 dias'],[91,1e9,'acima de 90 dias']];
 const MESES=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
 const SEMANA=['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
@@ -1145,7 +1145,7 @@ function relNota(v){const p=posicao(v.clienteId),d=despPorId(v.despescaId);
    RECEBER
    ===================================================================== */
 let fr=null;
-ENTRAR.rec=()=>{fr={data:chaveDia(),cliId:null,valor:'',forma:'PIX',doc:'',obs:'',busca:''}};
+ENTRAR.rec=()=>{fr={data:chaveDia(),cliId:null,valor:'',desc:'',forma:'PIX',doc:'',obs:'',busca:''}};
 RENDER.rec=()=>{
   const el=$('t-rec'),c=cliPorId(fr.cliId);let h=quemHtml();
   h+=`<section class="panel"><h2>Data</h2>${dataHtml('data',fr.data)}</section><section class="panel">${titNovo('Cliente','cliNovo')}`;
@@ -1155,6 +1155,8 @@ RENDER.rec=()=>{
   else h+=`<div class="cliBox">${clientesGrade(fr.busca,null,{porSaldo:true})}</div>`;
   h+=`</section>`;
   if(c){const p=posicao(c.id);h+=`<section class="panel"><h2>Valor recebido</h2><input type="text" class="big" data-f="valor" inputmode="decimal" value="${esc(fr.valor)}" placeholder="R$ 0,00">
+    <label>Desconto (R$)</label><input type="text" inputmode="decimal" data-f="desc" value="${esc(fr.desc||'')}" placeholder="R$ 0,00">
+    <p class="note">O desconto abate do débito do cliente, mas não entra como dinheiro recebido.</p>
     ${p.aberto>0.004?`<button data-a="tudo">Receber o total em aberto (${fmtR(p.aberto)})</button>`:''}
     <label>Forma</label><div class="chips">${FORMAS.map(x=>`<button data-a="forma" data-v="${x}" class="${fr.forma===x?'sel':''}">${x}</button>`).join('')}</div>
     <div class="datas"><div><label>Comprovante / doc.</label><input type="text" data-f="doc" value="${esc(fr.doc)}"></div><div><label>Observação</label><input type="text" data-f="obs" value="${esc(fr.obs)}"></div></div>
@@ -1164,23 +1166,24 @@ RENDER.rec=()=>{
 };
 CAMPOS.rec=(f,el,ev)=>{if(f==='busca'){if(ev!=='input')return;fr.busca=el.value;atualizaBusca(el,clientesGrade(fr.busca,null,{porSaldo:true}));return}
   if(f==='data'&&ev==='change'){if(el.value){fr.data=el.value;render()}return}
-  if(['valor','doc','obs'].includes(f))fr[f]=el.value};
+  if(['valor','desc','doc','obs'].includes(f))fr[f]=el.value};
 ACOES.rec={
   cli(id){fr.cliId=id;fr.busca='';render()},cliTroca(){fr.cliId=null;fr.valor='';render()},
   cliNovo(){formCliente(null,c=>{fr.cliId=c.id;render()})},
-  tudo(){fr.valor=txtBR(posicao(fr.cliId).aberto);render()},
+  tudo(){fr.valor=txtBR(Math.max(0,r2(posicao(fr.cliId).aberto-(r2(numBR(fr.desc))||0))));render()},
   forma(v){fr.forma=v;render()},
   cancelar(){avisoCancelar('Cancelar este recebimento?',()=>ir('inicio'))},
-  gravar(){const c=cliPorId(fr.cliId),v=r2(numBR(fr.valor));if(!c){toast('Escolha o cliente');return}if(!(v>0)){toast('Informe o valor');return}
+  gravar(){const c=cliPorId(fr.cliId),v=r2(numBR(fr.valor))||0,dsc=r2(numBR(fr.desc))||0;if(!c){toast('Escolha o cliente');return}if(!(v>0)&&!(dsc>0)){toast('Informe o valor');return}if(v<0||dsc<0){toast('Valor inválido');return}
     const p=posicao(c.id);const vai=()=>{const r={id:'rc-'+uid(),data:fr.data,clienteId:c.id,cliente:c.nome,valor:v,forma:fr.forma,doc:fr.doc.trim(),obs:fr.obs.trim(),vendedor:quem()};
-      salvarReg('receb',r,true);ENTRAR.rec();render();window.scrollTo(0,0);
-      const sal=posicao(c.id).aberto;janela(`<h3>✅ Recebimento gravado</h3><div class="kv"><div><span>Cliente</span><b>${esc(c.nome)}</b></div><div class="forte"><span>Recebido</span><b>${fmtR(v)}</b></div><div><span>Saldo em aberto agora</span><b>${fmtR(sal)}</b></div></div>
-        <button class="verde" id="jW">🖼 Recibo em foto</button><button class="primary" id="jF">OK</button>`,(j,fechar)=>{j.querySelector('#jW').onclick=()=>exportarRel(relRecibo(r),'img',`Recibo ${r.cliente} ${fmtData(r.data).replace(/\//g,'-')}`);j.querySelector('#jF').onclick=fechar})};
-    if(v>p.aberto+0.004)perguntar(`O valor (${fmtR(v)}) é maior que o débito em aberto (${fmtR(p.aberto)}).`,'Gravar mesmo assim','var(--warn)',vai,'A diferença fica como crédito do cliente.');else vai()},
+      if(dsc>0){const aj={id:'aj-'+uid(),clienteId:c.id,cliente:c.nome,tipo:'C',data:fr.data,valor:dsc,desc:'Desconto no recebimento'+(fr.obs.trim()?' — '+fr.obs.trim():''),vendedor:quem()};salvarReg('ajustes',aj,true);r.desconto=dsc;r.ajusteId=aj.id}
+      if(v>0)salvarReg('receb',r,true);ENTRAR.rec();render();window.scrollTo(0,0);
+      const sal=posicao(c.id).aberto;janela(`<h3>✅ Recebimento gravado</h3><div class="kv"><div><span>Cliente</span><b>${esc(c.nome)}</b></div><div class="forte"><span>Recebido</span><b>${fmtR(v)}</b></div>${dsc>0?`<div><span>Desconto</span><b>${fmtR(dsc)}</b></div>`:''}<div><span>Saldo em aberto agora</span><b>${fmtR(sal)}</b></div></div>
+        ${v>0?'<button class="verde" id="jW">🖼 Recibo em foto</button>':''}<button class="primary" id="jF">OK</button>`,(j,fechar)=>{if(v>0)j.querySelector('#jW').onclick=()=>exportarRel(relRecibo(r),'img',`Recibo ${r.cliente} ${fmtData(r.data).replace(/\//g,'-')}`);j.querySelector('#jF').onclick=fechar})};
+    if(r2(v+dsc)>p.aberto+0.004)perguntar(`O valor com desconto (${fmtR(r2(v+dsc))}) é maior que o débito em aberto (${fmtR(p.aberto)}).`,'Gravar mesmo assim','var(--warn)',vai,'A diferença fica como crédito do cliente.');else vai()},
   recEd(id){const r=db.receb.find(x=>x.id===id);if(r)editarReceb(r)},
   recDel(id){const r=db.receb.find(x=>x.id===id);if(r)excluirReceb(r)},
 };
-function relRecibo(r){const p=posicao(r.clienteId);return{titulo:'Recibo',sub:[r.cliente,'Data '+fmtData(r.data)],xlsNome:'Recibo',blocos:[{kv:[['Recebemos de',r.cliente],['Valor recebido',fmtR(r.valor),'#1f8f4e',true],['Forma de pagamento',r.forma||'—'],['Data',fmtData(r.data)]].concat(r.doc?[['Comprovante',r.doc]]:[]).concat([['Recebido por',r.vendedor||'—']])},{kv:[['Saldo em aberto após este pagamento',fmtR(p.aberto),p.vencido>0?'#b3261e':null,true]]}]}}
+function relRecibo(r){const p=posicao(r.clienteId);return{titulo:'Recibo',sub:[r.cliente,'Data '+fmtData(r.data)],xlsNome:'Recibo',blocos:[{kv:[['Recebemos de',r.cliente],['Valor recebido',fmtR(r.valor),'#1f8f4e',true]].concat(r.desconto?[['Desconto concedido',fmtR(r.desconto)]]:[]).concat([['Forma de pagamento',r.forma||'—'],['Data',fmtData(r.data)]]).concat(r.doc?[['Comprovante',r.doc]]:[]).concat([['Recebido por',r.vendedor||'—']])},{kv:[['Saldo em aberto após este pagamento',fmtR(p.aberto),p.vencido>0?'#b3261e':null,true]]}]}}
 function textoRecibo(r){const P=cad.params;const sal=posicao(r.clienteId).aberto;
   return [`*${P.empresa}* — Recibo`,`_${P.unidade}_`,'',`Recebemos de *${r.cliente}* o valor de *${fmtR(r.valor)}* (${r.forma}) em ${fmtData(r.data)}.`,r.doc?`Comprovante: ${r.doc}`:'','',`Saldo em aberto após este pagamento: *${fmtR(sal)}*`,'',P.empresa,P.contato||''].filter((x,i,a)=>x!==''||a[i-1]!=='').join('\n').trim()}
 function editarReceb(r){
