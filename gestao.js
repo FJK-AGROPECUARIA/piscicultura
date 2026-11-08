@@ -647,7 +647,7 @@ RENDER.gconf=()=>{
   const secs=[...el.querySelectorAll(':scope > section, :scope > details')];
   const mapa={venda:0,vend:1,desp:2,nuvem:[3,4]};
   if(gq.sub==='senha'){el.innerHTML=`<section class="panel"><h2>Senhas para abrir</h2><p class="note">Senha de cada botão da tela inicial. Deixe em branco para abrir direto, sem senha. A senha da Gestão também libera venda bloqueada e reabre despesca.</p>
-      ${[['desp','🐟 Despesca'],['vendas','🧾 Vendas'],['rec','💰 Receber'],['ver','📋 Resumo do dia'],['gest','📊 Gestão']].map(([k,t])=>`<div><label>${t}</label><input type="text" inputmode="numeric" maxlength="8" id="sn_${k}" value="${esc(senhaDe(k))}" autocomplete="off" placeholder="sem senha"></div>`).join('')}
+      ${[['desp','🐟 Despescas'],['vendas','🧾 Vendas'],['rec','💰 Receber'],['ver','📋 Resumo do dia'],['gest','📊 Gestão']].map(([k,t])=>`<div><label>${t}</label><input type="text" inputmode="numeric" maxlength="8" id="sn_${k}" value="${esc(senhaDe(k))}" autocomplete="off" placeholder="sem senha"></div>`).join('')}
       <button class="primary" data-a="salvarSenha">Salvar senhas</button></section>`;return}
   if(gq.sub==='emp'){const P=cad.params;el.innerHTML=`<section class="panel"><h2>Empresa (nas notas e relatórios)</h2><div><label>Empresa</label><input type="text" id="pEmp" value="${esc(P.empresa)}"></div><div><label>Unidade</label><input type="text" id="pUni" value="${esc(P.unidade)}"></div><div><label>Contato no rodapé (telefone, PIX)</label><input type="text" id="pCont" value="${esc(P.contato||'')}"></div><button class="primary" data-a="salvarEmp">Salvar</button></section>`;return}
   const idx=[].concat(mapa[gq.sub]);
@@ -681,7 +681,74 @@ new MutationObserver(ms=>{for(const m of ms)for(const n of m.addedNodes)if(n.nod
 poeSetasData();
 document.addEventListener('click',e=>{const b=e.target.closest('[data-dseta]');if(b){e.preventDefault();e.stopPropagation();const i=b.parentNode.querySelector('input[type=date]');const v=i.value||chaveDia();i.value=somaDias(v,Number(b.dataset.dseta));
     i.dispatchEvent(new Event('input',{bubbles:true}));i.dispatchEvent(new Event('change',{bubbles:true}));return}
-  const i=e.target.closest('input[type=date]');if(i&&i.showPicker){try{i.showPicker()}catch(x){}}},true);
+  const i=e.target.closest('input[type=date]');if(!i)return;
+  if(matchMedia('(hover:hover) and (pointer:fine)').matches){e.preventDefault();e.stopPropagation();abrirCalendario(i);return}
+  if(i.showPicker){try{i.showPicker()}catch(x){}}},true);
+/* no computador: calendário próprio (o do navegador nem sempre abre ao clicar) */
+document.addEventListener('mousedown',e=>{const i=e.target.closest&&e.target.closest('input[type=date]');if(i&&matchMedia('(hover:hover) and (pointer:fine)').matches)e.preventDefault()},true);
+document.addEventListener('keydown',e=>{const i=e.target;if(i&&i.matches&&i.matches('input[type=date]')&&(e.key==='Enter'||e.key===' ')&&matchMedia('(pointer:fine)').matches){e.preventDefault();abrirCalendario(i)}},true);
+const MESES_CAL=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+function abrirCalendario(inp){const sel=inp.value||chaveDia();let [y,m]=sel.split('-').map(Number);m--;
+  janela('<div class="cal"></div>',(j,fechar)=>{const box=j.querySelector('.cal');
+    const pinta=()=>{const ini=new Date(y,m,1),dow=(ini.getDay()+6)%7,nd=new Date(y,m+1,0).getDate(),hj=chaveDia();let c='';
+      for(let k=0;k<dow;k++)c+='<span></span>';
+      for(let d=1;d<=nd;d++){const k=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;c+=`<button type="button" data-d="${k}" class="${k===sel?'sel':''} ${k===hj?'hoje':''}">${d}</button>`}
+      box.innerHTML=`<div class="calCab"><button type="button" data-m="-1">◀</button><b>${MESES_CAL[m]} ${y}</b><button type="button" data-m="1">▶</button></div>
+        <div class="calSem">${['S','T','Q','Q','S','S','D'].map(x=>`<span>${x}</span>`).join('')}</div><div class="calDias">${c}</div>
+        <div class="row"><button type="button" data-x="hoje">Hoje</button><button type="button" data-x="fechar">Fechar</button></div>`};
+    pinta();
+    box.onclick=e=>{const b=e.target.closest('button');if(!b)return;e.stopPropagation();
+      if(b.dataset.m){m+=Number(b.dataset.m);if(m<0){m=11;y--}if(m>11){m=0;y++}pinta();return}
+      if(b.dataset.x==='fechar'){fechar();return}
+      const v=b.dataset.x==='hoje'?chaveDia():b.dataset.d;if(!v)return;fechar();inp.value=v;inp.dispatchEvent(new Event('input',{bubbles:true}));inp.dispatchEvent(new Event('change',{bubbles:true}))}},'calJan')}
+
+
+/* =====================================================================
+   DESPESCAS EFETIVADAS: relação dos bags lançados (filtro de período, despesca e tanque)
+   ===================================================================== */
+const gq2={per:'7',de:'',ate:'',desp:'',tq:''};
+ENTRAR.gdesp=()=>{aplicaPer(gq2,'7');gq2.desp='';gq2.tq=''};
+function bagsFiltro(){return db.bags.filter(b=>(gq2.desp?b.despescaId===gq2.desp:naFaixa(b.data,gq2.de,gq2.ate))&&(!gq2.tq||b.tanque===gq2.tq)).sort((a,b)=>b.data.localeCompare(a.data)||String(b.registradoEm).localeCompare(String(a.registradoEm)))}
+RENDER.gdesp=()=>{const l=bagsFiltro(),r=resumoBags(l),tqs=[...new Set(db.bags.map(b=>b.tanque))].sort(ordTxt);
+  let h=`<section class="panel"><h2>Filtros</h2>${gq2.desp?'':perHtml(gq2)}${despSelHtml(gq2.desp,true,'Despesca')}${selSetas('Tanque / viveiro','tq',[['','Todos os tanques']].concat(tqs.map(t=>[t,t])),gq2.tq)}</section>
+   <section class="panel">${titNovo('Despescas efetivadas','novoBag')}<div class="stat"><div><small>Bags</small><b class="num">${r.n}</b></div><div><small>Kg despescado</small><b class="num">${fmtKg(r.kg)}</b></div><div><small>Peixes</small><b class="num">${r.q?fmtI(r.q):'—'}</b></div></div>`;
+  const porT=Object.values(l.reduce((o,b)=>{const x=b.tanque+' · '+b.produto;(o[x]=o[x]||{k:x,l:[]}).l.push(b);return o},{})).map(x=>({k:x.k,...resumoBags(x.l)})).sort((a,b)=>b.kg-a.kg);
+  if(porT.length)h+=tabHtml(['Tanque · peixe','Bags','Kg'],porT.map(x=>[x.k,String(x.n),fmtKg(x.kg)]));
+  let dia='';l.forEach(b=>{if(b.data!==dia){dia=b.data;const dv=resumoBags(l.filter(x=>x.data===dia));h+=`<div class="dia"><span>${nomeDia(dia)}, ${fmtData(dia)}</span><span>${dv.n} bags · ${fmtKg(dv.kg)} kg</span></div>`}
+    h+=`<button class="reg" data-a="ed" data-v="${b.id}"><div><span class="eqn">${esc(b.tanque)} · ${esc(b.produto)}</span><div class="faz">${fmtHora(b.registradoEm)}${b.lancadoPor?' · '+esc(b.lancadoPor):''}${b.qtd?' · '+fmtI(b.qtd)+' peixes':''}</div>${b.obs?`<div class="obs">${esc(b.obs)}</div>`:''}</div><div class="lt">${fmtKg(b.peso)}<small>kg</small></div></button>`});
+  if(!l.length)h+='<div class="vazio">Nenhuma despesca no filtro.</div>';
+  h+=`${l.length?botoesExp():''}<p class="note">Toque num bag para ver, editar ou excluir.</p></section>`;
+  $('t-gdesp').innerHTML=h};
+CAMPOS.gdesp=(f,el)=>{if(f==='de'||f==='ate'){gq2[f]=el.value;gq2.per='';ajustaPar(gq2,f);render();return}if(f==='desp'){gq2.desp=el.value;render();return}if(f==='tq'){gq2.tq=el.value;render()}};
+ACOES.gdesp={per(v){aplicaPer(gq2,v);render()},novoBag(){if(!quem()){escolherQuem(()=>ir('desp'));return}ir('desp')},ed(id){const b=db.bags.find(x=>x.id===id);if(b)editarBag(b)},
+  exp(t){const d=gq2.desp&&despPorId(gq2.desp),de=d?d.ini:gq2.de,ate=d?d.fim:gq2.ate,l=bagsFiltro().slice().reverse(),x=resumoBags(l);
+    const r={titulo:'Despescas efetivadas',sub:[d?d.descricao:rotPer(de,ate),gq2.tq?'Tanque '+gq2.tq:''].filter(Boolean),xlsNome:'Despescas',blocos:[{kv:[['Bags',String(x.n)],['Peso líquido',fmtKg(x.kg)+' kg',null,true],['Peixes',x.q?fmtI(x.q):'—']]},
+      {tit:'Bags',cols:[{t:'Data',w:11},{t:'Hora',w:8},{t:'Tanque',w:18},{t:'Peixe',w:16},{t:'Kg',w:11,al:'r'},{t:'Peixes',w:9,al:'r'},{t:'Lançado por',w:14}],linhas:l.map(b=>[fmtData(b.data),fmtHora(b.registradoEm),b.tanque,b.produto,fmtKg(b.peso),b.qtd?fmtI(b.qtd):'',b.lancadoPor||'']),total:['TOTAL','','','',fmtKg(x.kg),x.q?fmtI(x.q):'','']}]};
+    return exportarRel(r,t,`Despescas ${(d?d.descricao.replace(/^.*\((.*)\)$/,'$1'):rotPer(de,ate)).replace(/\//g,'-')}`)}};
+
+/* =====================================================================
+   RECEBIMENTOS: relação do que foi recebido (filtro de período, cliente e forma)
+   ===================================================================== */
+const gr2={per:'7',de:'',ate:'',cli:'',forma:''};
+ENTRAR.greceb=()=>{aplicaPer(gr2,'7');gr2.cli='';gr2.forma=''};
+const recFiltro=()=>db.receb.filter(r=>naFaixa(r.data,gr2.de,gr2.ate)&&(!gr2.cli||r.clienteId===gr2.cli)&&(!gr2.forma||r.forma===gr2.forma)).sort((a,b)=>b.data.localeCompare(a.data)||String(b.registradoEm||'').localeCompare(String(a.registradoEm||'')));
+RENDER.greceb=()=>{const l=recFiltro(),tot=r2(l.reduce((s,r)=>s+Number(r.valor||0),0));
+  const clis=[...new Map(db.receb.map(r=>[r.clienteId,r.cliente])).entries()].sort((a,b)=>ordTxt(a[1],b[1])),formas=[...new Set(db.receb.map(r=>r.forma).filter(Boolean))].sort(ordTxt);
+  const pf={};l.forEach(r=>pf[r.forma||'—']=r2((pf[r.forma||'—']||0)+Number(r.valor)));
+  let h=`<section class="panel"><h2>Filtros</h2>${perHtml(gr2)}${selSetas('Cliente','cli',[['','Todos os clientes']].concat(clis),gr2.cli)}${selSetas('Forma de pagamento','forma',[['','Todas as formas']].concat(formas.map(f=>[f,f])),gr2.forma)}</section>
+   <section class="panel">${titNovo('Recebimentos','novoRec')}<div class="stat"><div><small>Recebimentos</small><b class="num">${l.length}</b></div><div><small>Total recebido</small><b class="num pos">${fmtR(tot).replace('R$ ','')}</b></div></div>
+   ${Object.keys(pf).length>1?`<div class="kv">${Object.entries(pf).map(([k,v])=>`<div><span>${esc(k)}</span><b>${fmtR(v)}</b></div>`).join('')}</div>`:''}`;
+  let dia='';l.forEach(r=>{if(r.data!==dia){dia=r.data;h+=`<div class="dia"><span>${nomeDia(dia)}, ${fmtData(dia)}</span><span>${fmtR(r2(l.filter(x=>x.data===dia).reduce((s,x)=>s+Number(x.valor),0)))}</span></div>`}
+    h+=`<button class="reg" data-a="ed" data-v="${r.id}"><div><span class="eqn">${esc(r.cliente)}</span><div class="faz">${esc(r.forma||'')}${r.doc?' · '+esc(r.doc):''}${r.vendedor?' · '+esc(r.vendedor):''}</div>${r.obs?`<div class="obs">${esc(r.obs)}</div>`:''}</div><div class="lt mais">${fmtR(r.valor)}</div></button>`});
+  if(!l.length)h+='<div class="vazio">Nenhum recebimento no filtro.</div>';
+  h+=`${l.length?botoesExp():''}<p class="note">Toque num recebimento para ver, editar ou excluir.</p></section>`;
+  $('t-greceb').innerHTML=h};
+CAMPOS.greceb=(f,el)=>{if(f==='de'||f==='ate'){gr2[f]=el.value;gr2.per='';ajustaPar(gr2,f);render();return}if(f==='cli'||f==='forma'){gr2[f]=el.value;render()}};
+ACOES.greceb={per(v){aplicaPer(gr2,v);render()},novoRec(){if(!quem()){escolherQuem(()=>ir('rec'));return}ir('rec')},ed(id){const r=db.receb.find(x=>x.id===id);if(r)editarReceb(r)},
+  exp(t){const l=recFiltro().slice().reverse(),tot=r2(l.reduce((s,r)=>s+Number(r.valor||0),0)),c=gr2.cli&&cliPorId(gr2.cli);
+    const r={titulo:'Recebimentos',sub:[rotPer(gr2.de,gr2.ate),c?c.nome:'',gr2.forma].filter(Boolean),xlsNome:'Recebimentos',blocos:[{kv:[['Recebimentos',String(l.length)],['Total recebido',fmtR(tot),'#1f8f4e',true]]},
+      {cols:[{t:'Data',w:11},{t:'Cliente',w:32},{t:'Forma',w:14},{t:'Doc.',w:12},{t:'Vendedor',w:14},{t:'Valor',w:14,al:'r'}],linhas:l.map(r=>[fmtData(r.data),r.cliente,r.forma||'',r.doc||'',r.vendedor||'',fmtR(r.valor)]),total:['TOTAL','','','','',fmtR(tot)]}]};
+    return exportarRel(r,t,`Recebimentos ${rotPer(gr2.de,gr2.ate).replace(/\//g,'-')}`)}};
 
 /* ---------- início ---------- */
 marcaAtualizado();marcaQuem();statusNuvem();carregar();
