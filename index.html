@@ -320,6 +320,9 @@ body.naInicio .gIniBar{display:none}
 
 .stat b{font-size:clamp(1rem,4.6vw,1.6rem)!important;white-space:nowrap;display:block;overflow:hidden;text-overflow:ellipsis}
 .pesoLinha input.big{font-size:1.8rem}
+.icoRede{width:1.5em;height:1.5em;vertical-align:-.35em;color:#fff}.gIniBar .icoRede{width:1.25em;height:1.25em;vertical-align:-.3em}
+.atalhos{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 2px}.atalhos .mini{flex:1 1 0;min-width:0;padding:8px 4px;font-size:.85rem;border-radius:10px}.atalhos .mini.sel{background:var(--accent);border-color:var(--accent);color:#fff}
+.selNav{margin-top:8px}.selLinha{display:flex;gap:6px;align-items:stretch}.selLinha select{flex:1;min-width:0;margin:0}.selLinha .gSeta{flex:none;width:46px;padding:0;font-size:1.1rem;background:var(--accent);border-color:var(--accent);color:#fff;border-radius:10px}
 </style>
 </head>
 <body class="naInicio">
@@ -331,10 +334,11 @@ body.naInicio .gIniBar{display:none}
 <div class="wrap" id="wrap">
   <!-- TELA INICIAL (igual ao Gestão de Tratos: cada botão com a sua senha) -->
   <div class="inicio" id="inicio">
-    <button class="grande gExec" data-modo="oper">🐟 Operacional</button>
-    <button class="grande gVer" data-modo="ver">👁 Visualizar</button>
-    <button class="grande gRel" data-modo="rel">📤 Relatórios do dia</button>
-    <button class="grande gGest" data-modo="gest">📊 Gestão</button>
+    <button class="grande gDesp" data-modo="desp"><svg class="icoRede" viewBox="0 0 40 40" aria-hidden="true"><defs><clipPath id="cpRede"><path d="M5 12 Q7 34 20 36 Q33 34 35 12 Z"/></clipPath></defs><line x1="34" y1="11" x2="39" y2="2" stroke="#8d6e63" stroke-width="3" stroke-linecap="round"/><path d="M5 12 Q7 34 20 36 Q33 34 35 12 Z" fill="rgba(255,255,255,.15)"/><g clip-path="url(#cpRede)"><g transform="translate(20 23) rotate(-12)"><path d="M-10 0 Q-3 -7 6 0 Q-3 7 -10 0 Z" fill="#ffb74d"/><path d="M5 0 L11 -5 L11 5 Z" fill="#fb8c00"/><circle cx="-6" cy="-1" r="1.2" fill="#3e2723"/></g><g stroke="currentColor" stroke-width="1.1" opacity=".9"><path d="M-2 12 L22 40 M6 12 L30 40 M14 12 L38 40 M22 12 L46 40 M-10 12 L14 40"/><path d="M42 12 L18 40 M34 12 L10 40 M26 12 L2 40 M18 12 L-6 40 M50 12 L26 40"/></g></g><path d="M5 12 Q7 34 20 36 Q33 34 35 12" fill="none" stroke="currentColor" stroke-width="2"/><ellipse cx="20" cy="12" rx="15" ry="3.6" fill="none" stroke="currentColor" stroke-width="2.2"/></svg> Despesca</button>
+    <button class="grande gVend" data-modo="vend">⚖️ Vender</button>
+    <button class="grande gRec" data-modo="rec">💰 Receber</button>
+    <button class="grande gVer" data-modo="ver">📋 Resumo do dia</button>
+    <button class="grande gCad" data-modo="gest">📊 Gestão</button>
     <p class="lanc" id="iniQuem"></p>
   </div>
   <button type="button" class="gIniBar" id="barra" hidden><span id="barraTxt">☰</span><span id="barraVoltar">◀ voltar</span></button>
@@ -352,15 +356,16 @@ body.naInicio .gIniBar{display:none}
   <!-- GESTÃO -->
   <div class="tela" id="t-gest" hidden>
     <div class="gTiles">
-      <button data-ir="gcli" style="--c:#2e8b3d"><span class="gIc">👥</span>Clientes</button>
       <button data-ir="gvend" style="--c:#1e6fd0"><span class="gIc">🧾</span>Vendas</button>
-      <button data-ir="gfech" style="--c:#0b3a82"><span class="gIc">📦</span>Despescas</button>
-      <button data-ir="gcust" style="--c:#a0522d"><span class="gIc">💸</span>Custos</button>
-      <button data-ir="gacer" style="--c:#b8860b"><span class="gIc">🤝</span>Acerto</button>
-      <button data-ir="gpeix" style="--c:#00838f"><span class="gIc">🐠</span>Peixes/<wbr>Tanques</button>
-      <button data-ir="gres" style="--c:#3f80c4"><span class="gIc">📋</span>Resumo</button>
+      <button data-ir="gcli" style="--c:#1f7a4d"><span class="gIc">👥</span>Clientes / Extrato</button>
+      <button data-ir="gcob" style="--c:#b3261e"><span class="gIc">⏰</span>Cobrança</button>
+      <button data-ir="gfech" style="--c:#0b3a82"><span class="gIc">📦</span>Fechamento da Despesca</button>
+      <button data-ir="gcust" style="--c:#8a5a12"><span class="gIc">💸</span>Custos</button>
+      <button data-ir="gacer" style="--c:#2c4f7c"><span class="gIc">🤝</span>Acerto com a Fazenda</button>
+      <button data-ir="gdoa" style="--c:#7b3fa0"><span class="gIc">🎁</span>Doações</button>
+      <button data-ir="gpeix" style="--c:#00838f"><span class="gIc">🐠</span>Peixes e Tanques</button>
       <button data-ir="grel" style="--c:#24507f"><span class="gIc">📈</span>Relatórios</button>
-      <button data-ir="gconf" style="--c:#6b7479"><span class="gIc">⚙️</span>Config.</button>
+      <button data-ir="gconf" style="--c:#0b2545"><span class="gIc">⚙️</span>Configurações</button>
     </div>
   </div>
 
@@ -405,7 +410,7 @@ body.naInicio .gIniBar{display:none}
    ===================================================================== */
 const PRAZO=5*60*1000; // quem lançou pode editar/excluir por 5 minutos sem senha
 const API_PADRAO='https://script.google.com/macros/s/AKfycbwcOrQCcLUC2FmLZPAGfmJNChxdtbh80tajcaMXLvrJaAqedwJXFuZCsDIaxQl2E67gIw/exec'; // link do Google Script (/exec) — colar aqui depois de publicar o Code.gs
-const VERSAO='5';
+const VERSAO='6';
 const K={cad:'pc_cad',db:'pc_db',fila:'pc_fila',pend:'pc_pend',api:'pc_api',disp:'pc_disp',quem:'pc_quem',rascV:'pc_rascV',sync:'pc_sync',gest:'pc_gestOk'};
 const TABS=['vendas','receb','ajustes','bags','doacoes','custos','repasses'];
 const CATS=['Ração','Oxigênio / Aeração','Combustível / Transporte','Gelo','Mão de obra (fixa)','Mão de obra (diárias)','Insumos veterinários','Energia elétrica','Manutenção / Equipamentos','Alimentação','Hospedagem','Despesas administrativas','Investimentos','Outros'];
@@ -546,10 +551,11 @@ function sitVenda(v){const t=titulos(v.clienteId).find(x=>x.ref===v.id);return t
 /* ---------- Senhas (igual ao Gestão de Tratos) ----------
    cada botão da tela inicial tem a sua senha e editar/excluir tem outra.
    Ficam em Gestão › Config. › Senhas (vazia = não pede). */
-const SENHAS_PADRAO={oper:'0000',ver:'0000',rel:'0000',gest:'1010',acao:'1010'};
+const SENHAS_PADRAO={gest:'0000'};
 let cadLiberado=false;
 const turnoAtual=()=>chaveDia()+(new Date().getHours()<12?'M':'T');
-function senhaDe(m){const x=cad&&cad.params&&cad.params.senhas;return x&&typeof x[m]==='string'?x[m]:(SENHAS_PADRAO[m]||'')}
+/* por enquanto só a Gestão pede senha */
+function senhaDe(m){if(m!=='gest')return '';const x=cad&&cad.params&&cad.params.senhas;return x&&typeof x.gest==='string'?x.gest:SENHAS_PADRAO.gest}
 const senhaPorTurno=()=>!!(cad&&cad.params&&cad.params.senhaTurno);
 function turnoOk(m){try{return senhaPorTurno()&&localStorage.getItem('pc_senhaOk_'+m)===turnoAtual()}catch(e){return false}}
 function marcaTurno(m){try{localStorage.setItem('pc_senhaOk_'+m,turnoAtual())}catch(e){}}
@@ -633,61 +639,56 @@ const nomeArq=s=>String(s).replace(/[\\/:*?"<>|]/g,'-').replace(/\s+/g,' ').trim
    rel = {titulo, sub, blocos:[ {kv:[[rótulo,valor,cor?,forte?]]} |
           {tit, cols:[{t,w,al}], linhas:[[...]], total:[...]} | {txt} ]}
    ===================================================================== */
-const RW=1000,RS=2,MX=40,AZ='#0d47a1',AZ2='#e3eefb',TX='#11253d',MU='#5d6b7a';
-const MED=document.createElement('canvas').getContext('2d');
-function cortar(c,t,w){t=String(t??'');if(c.measureText(t).width<=w)return t;while(t&&c.measureText(t+'…').width>w)t=t.slice(0,-1);return t+'…'}
-function quebrar(c,t,w){const out=[];String(t||'').split('\n').forEach(par=>{let l='';par.split(/\s+/).forEach(p=>{const x=l?l+' '+p:p;if(c.measureText(x).width>w&&l){out.push(l);l=p}else l=x});out.push(l)});return out}
-function itensRel(rel){
-  const it=[];
+/* ---------- arquivos dos relatórios: mesmo padrão do Gestão de Tratos (em azul) ----------
+   Foto = PNG; PDF = as mesmas imagens, em páginas (até 45 linhas cada, o total no fim da seção);
+   título "FJK - <relatório> - data", faixa da seção com o período, cabeçalho em maiúsculas, linhas zebradas, total escuro */
+const AZ='#0d47a1',AZ2='#e3eefb',AZC='#64b5f6',TX='#11253d',MU='#5d6b7a',FNT='-apple-system,"Segoe UI",Roboto,Arial,sans-serif',LARG=880;
+function secoesDeRel(rel){const S=[],sub=[].concat(rel.sub||[]).filter(Boolean).join(' · ');let primeira=true;
+  const cab=t=>{const c=primeira?[t||rel.titulo,sub].filter(Boolean).join(' · '):(t||'');primeira=false;return c};
   for(const b of rel.blocos){
-    if(b.tit)it.push({k:'sec',h:46,t:b.tit});
-    if(b.kv)b.kv.forEach(r=>it.push({k:'kv',h:r[3]?40:32,r}));
-    if(b.txt){MED.font='15px Arial';quebrar(MED,b.txt,RW-2*MX).forEach(l=>it.push({k:'txt',h:22,t:l}))}
-    if(b.cols){const tot=b.cols.reduce((s,c)=>s+c.w,0),esc=(RW-2*MX)/tot;let x=MX;const cols=b.cols.map(c=>{const o={...c,x,w:c.w*esc};x+=c.w*esc;return o});
-      const cab={k:'cab',h:30,cols};it.push(cab);
-      b.linhas.forEach((r,i)=>it.push({k:'lin',h:28,cols,r,z:i%2,cab,cor:b.cores&&b.cores[i]}));
-      if(!b.linhas.length)it.push({k:'txt',h:26,t:'Nenhum registro.'});
-      if(b.total)it.push({k:'tot',h:32,cols,r:b.total,cab});}
-    it.push({k:'esp',h:14});
+    if(b.kv)S.push({cab:cab(b.tit),cols:[['',LARG*0.56,'l'],['',LARG*0.44,'r']],linhas:b.kv.map(r=>[r[0],r[1]]),cores:b.kv.map(r=>[r[3]?AZ:null,r[2]||(r[3]?AZ:null)]),fortes:b.kv.map(r=>!!r[3])});
+    if(b.txt){const ln=[];MED.font=`500 19px ${FNT}`;quebrar(MED,b.txt,LARG-20).forEach(l=>ln.push([l]));S.push({cab:cab(b.tit),cols:[['',LARG,'l']],linhas:ln,txt:true})}
+    if(b.cols){const tot=b.cols.reduce((x,c)=>x+c.w,0);S.push({cab:cab(b.tit),cols:b.cols.map(c=>[c.t,c.w*LARG/tot,c.al==='r'?'r':'l']),linhas:b.linhas.length?b.linhas:[['Nenhum registro.']],cores:b.cores,total:b.total||null})}
   }
-  return it;
+  return S;
 }
-function paginar(it,PH){const pgs=[];let p=[],y=0;const lim=pg=>PH-(pg?60:60)-(pgs.length?70:CAB1);
-  for(const i of it){if(y+i.h>lim(pgs.length)&&p.length){pgs.push(p);p=[];y=0;if(i.cab&&i.k!=='cab'){p.push(i.cab);y+=i.cab.h}}if(!p.length&&i.k==='esp')continue;p.push(i);y+=i.h}
-  if(p.length)pgs.push(p);return pgs}
-const CAB1=170;
-function desenharPagina(rel,itens,n,tot,PH){
-  const h=PH||itens.reduce((s,i)=>s+i.h,0)+CAB1+60,cv=document.createElement('canvas');cv.width=RW*RS;cv.height=h*RS;
-  const c=cv.getContext('2d');c.scale(RS,RS);c.fillStyle='#fff';c.fillRect(0,0,RW,h);c.textBaseline='middle';
-  let y;
-  if(n===1){const lg=$('logoRel');try{const lh=86,lw=lh*lg.naturalWidth/lg.naturalHeight;c.drawImage(lg,MX,24,lw,lh)}catch(e){}
-    c.textAlign='right';c.fillStyle=AZ;c.font='bold 30px Arial';c.fillText(cortar(c,rel.titulo,560),RW-MX,48);
-    c.fillStyle=MU;c.font='16px Arial';(rel.sub?[].concat(rel.sub):[]).slice(0,2).forEach((s,i)=>c.fillText(cortar(c,s,600),RW-MX,80+i*22));
-    c.font='13px Arial';c.fillText(`${cad.params.empresa||'FJK AGROPECUÁRIA'} — ${cad.params.unidade||'Piscicultura'} · emitido em ${fmtDH(agora())}`,RW-MX,128);
-    c.textAlign='left';c.fillStyle=AZ;c.fillRect(MX,148,RW-2*MX,4);y=CAB1;
-  }else{c.fillStyle=MU;c.font='14px Arial';c.fillText(cortar(c,rel.titulo+(rel.sub?' · '+[].concat(rel.sub)[0]:''),RW-2*MX),MX,30);c.fillStyle=AZ;c.fillRect(MX,48,RW-2*MX,2);y=70}
-  for(const i of itens){
-    if(i.k==='sec'){c.fillStyle=AZ;c.fillRect(MX,y+10,6,26);c.fillStyle=TX;c.font='bold 19px Arial';c.fillText(cortar(c,i.t,RW-2*MX-20),MX+16,y+24)}
-    if(i.k==='kv'){const[a,b,cor,forte]=i.r;if(forte){c.fillStyle=AZ2;c.fillRect(MX,y+2,RW-2*MX,i.h-4)}c.fillStyle=MU;c.font=(forte?'bold ':'')+'16px Arial';c.fillText(cortar(c,a,560),MX+10,y+i.h/2);
-      c.textAlign='right';c.fillStyle=cor||TX;c.font='bold '+(forte?'19px':'16px')+' Arial';c.fillText(cortar(c,b,360),RW-MX-10,y+i.h/2);c.textAlign='left';
-      if(!forte){c.fillStyle='#e6eaef';c.fillRect(MX,y+i.h-1,RW-2*MX,1)}}
-    if(i.k==='txt'){c.fillStyle=TX;c.font='15px Arial';c.fillText(i.t,MX,y+i.h/2)}
-    if(i.k==='cab'){c.fillStyle=AZ;c.fillRect(MX,y,RW-2*MX,i.h);c.fillStyle='#fff';c.font='bold 13px Arial';
-      i.cols.forEach(col=>{c.textAlign=col.al==='r'?'right':'left';c.fillText(cortar(c,col.t,col.w-10),col.al==='r'?col.x+col.w-6:col.x+6,y+i.h/2)});c.textAlign='left'}
-    if(i.k==='lin'||i.k==='tot'){if(i.k==='tot'){c.fillStyle=AZ2;c.fillRect(MX,y,RW-2*MX,i.h)}else if(i.z){c.fillStyle='#f5f8fc';c.fillRect(MX,y,RW-2*MX,i.h)}
-      c.font=(i.k==='tot'?'bold ':'')+'13.5px Arial';
-      i.cols.forEach((col,ci)=>{const v=i.r[ci];if(v==null)return;c.fillStyle=(i.cor&&i.cor[ci])||TX;c.textAlign=col.al==='r'?'right':'left';c.fillText(cortar(c,v,col.w-10),col.al==='r'?col.x+col.w-6:col.x+6,y+i.h/2)});c.textAlign='left';
-      c.fillStyle='#e6eaef';c.fillRect(MX,y+i.h-1,RW-2*MX,1)}
-    y+=i.h;
-  }
-  c.fillStyle=MU;c.font='12px Arial';c.textAlign='center';c.fillText(`FJK Agropecuária — Piscicultura · página ${n} de ${tot}`,RW/2,h-26);c.textAlign='left';
+const MED=document.createElement('canvas').getContext('2d');
+function quebrar(c,t,w){const out=[];String(t||'').split('\n').forEach(par=>{let l='';par.split(/\s+/).forEach(p=>{const x=l?l+' '+p:p;if(c.measureText(x).width>w&&l){out.push(l);l=p}else l=x});out.push(l)});return out}
+function gImagem(titulo,secoes){
+  const M=30,W=M*2+LARG,RH=44;let H=120;
+  secoes.forEach(s=>{H+=(s.cab?50:10)+(s.cols.some(c=>c[0])?40:6)+RH*s.linhas.length+(s.total?52:0)+24});H+=20;
+  /* o iPhone não desenha canvas com mais de ~16,7 milhões de pixels: relatório comprido baixa a resolução; comprido demais avisa */
+  const esc=Math.min(2,Math.sqrt(15e6/(W*H)));if(esc<0.7){const e=new Error('grande');e.grande=true;throw e}
+  const cv=document.createElement('canvas');cv.width=Math.floor(W*esc);cv.height=Math.floor(H*esc);const c=cv.getContext('2d');c.scale(esc,esc);
+  c.fillStyle='#fff';c.fillRect(0,0,W,H);c.fillStyle=AZ;c.fillRect(0,0,W,90);c.fillStyle=AZC;c.fillRect(0,90,W,6);
+  c.textBaseline='middle';c.textAlign='left';c.fillStyle='#fff';let fs=30;c.font=`700 ${fs}px ${FNT}`;while(c.measureText(titulo).width>W-2*M&&fs>18){fs--;c.font=`700 ${fs}px ${FNT}`}c.fillText(titulo,M,40);
+  c.font=`600 16px ${FNT}`;c.fillStyle='#bbdefb';c.fillText('Piscicultura · FJK',M,70);
+  let y=120;const al=a=>a==='l'?'left':a==='c'?'center':'right';
+  secoes.forEach(s=>{const cols=s.cols,px=(k,a)=>{let x=M;for(let i=0;i<k;i++)x+=cols[i][1];const w=cols[k][1];return a==='l'?x+8:a==='c'?x+w/2:x+w-8};
+    if(s.cab){c.fillStyle=AZ2;c.fillRect(M,y,W-2*M,44);c.fillStyle='#1e88e5';c.fillRect(M,y,6,44);c.fillStyle=TX;let f=22;c.font=`700 ${f}px ${FNT}`;while(c.measureText(s.cab).width>W-2*M-30&&f>13){f--;c.font=`700 ${f}px ${FNT}`}c.textAlign='left';c.fillText(s.cab,M+16,y+22);y+=50}else y+=10;
+    if(cols.some(x=>x[0])){c.font=`700 14px ${FNT}`;c.fillStyle=MU;cols.forEach(([t,w,a],k)=>{c.textAlign=al(a);let tx=String(t).toUpperCase(),f=14;while(c.measureText(tx).width>w-12&&f>9){f--;c.font=`700 ${f}px ${FNT}`}c.fillText(tx,px(k,a),y+20);c.font=`700 14px ${FNT}`});y+=40;c.fillStyle='#dde3ea';c.fillRect(M,y-2,W-2*M,2)}else y+=6;
+    s.linhas.forEach((l,i)=>{const forte=s.fortes&&s.fortes[i];if(forte){c.fillStyle=AZ2;c.fillRect(M,y,W-2*M,RH)}else if(i%2){c.fillStyle='#f7f9fb';c.fillRect(M,y,W-2*M,RH)}
+      l.forEach((v,k)=>{if(!cols[k])return;const a=cols[k][2];c.textAlign=al(a);const pe=(s.txt?'500 ':(k===0||forte?'700 ':'500 '));let t=String(v??''),f=19;c.font=pe+f+'px '+FNT;
+        c.fillStyle=(s.cores&&s.cores[i]&&s.cores[i][k])||TX;while(c.measureText(t).width>cols[k][1]-12&&f>11){f--;c.font=pe+f+'px '+FNT}c.fillText(t,px(k,a),y+RH/2)});
+      y+=RH;c.fillStyle='#dde3ea';c.fillRect(M,y-1,W-2*M,1)});
+    if(s.total){c.fillStyle=AZ;c.fillRect(M,y+6,W-2*M,44);
+      s.total.forEach((v,k)=>{if(v==null||v===''||!cols[k])return;c.textAlign=k===0?'left':al(cols[k][2]);c.fillStyle=k===0?'#fff':'#bbdefb';const tv=String(v);let f=19;c.font=`700 ${f}px ${FNT}`;if(k>0)while(c.measureText(tv).width>cols[k][1]-10&&f>10){f--;c.font=`700 ${f}px ${FNT}`}c.fillText(tv,k===0?M+12:px(k,cols[k][2]),y+28)});y+=52}
+    y+=24});
   return cv;
 }
-const blobDe=(cv,t,q)=>new Promise(r=>cv.toBlob(r,t,q));
+/* PDF comprido: quebra as linhas em páginas; o total de cada seção fica na última parte dela */
+function paginarSecoes(secoes,max=45){const tot=secoes.reduce((a,s)=>a+s.linhas.length,0);if(tot<=max+10)return [secoes];
+  const P=[];let cur=[],n=0;const fecha=()=>{if(cur.length){P.push(cur);cur=[];n=0}};
+  secoes.forEach(s=>{const L=s.linhas;let i=0;
+    while(i<L.length){if(n>=max-3)fecha();const k=Math.min(L.length-i,max-n);cur.push(Object.assign({},s,{cab:i?(s.cab||'')+' (continuação)':s.cab,linhas:L.slice(i,i+k),cores:s.cores?s.cores.slice(i,i+k):s.cores,fortes:s.fortes?s.fortes.slice(i,i+k):s.fortes,total:i+k>=L.length?s.total:null}));n+=k+3;i+=k}});
+  fecha();return P}
+const tituloArq=rel=>`FJK - ${rel.titulo} - ${fmtData(chaveDia())}`;
+const blobDe=(cv,t,q)=>new Promise((ok,no)=>cv.toBlob(b=>b?ok(b):no(new Error('toBlob')),t,q));
+async function gerarFoto(rel){return blobDe(gImagem(tituloArq(rel),secoesDeRel(rel)),'image/png')}
 async function gerarPdf(rel){
-  const PH=Math.round(RW*297/210),pgs=paginar(itensRel(rel),PH),im=[];
-  for(let i=0;i<pgs.length;i++){const cv=desenharPagina(rel,pgs[i],i+1,pgs.length,PH);
-    im.push({b:new Uint8Array(await (await blobDe(cv,'image/jpeg',0.88)).arrayBuffer()),w:cv.width,h:cv.height})}
+  const P=paginarSecoes(secoesDeRel(rel)),im=[];
+  for(let k=0;k<P.length;k++){const cv=gImagem(P.length>1?`${tituloArq(rel)} · pág. ${k+1}/${P.length}`:tituloArq(rel),P[k]);
+    im.push({b:new Uint8Array(await (await blobDe(cv,'image/jpeg',0.92)).arrayBuffer()),w:cv.width,h:cv.height})}
   const enc=new TextEncoder(),parts=[],offs=[];let off=0;
   const add=x=>{const b=typeof x==='string'?enc.encode(x):x;parts.push(b);off+=b.length};
   const obj=(n,body)=>{offs[n]=off;add(n+' 0 obj\n');[].concat(body).forEach(add);add('\nendobj\n')};
@@ -703,13 +704,15 @@ async function gerarPdf(rel){
   add(x+`trailer\n<< /Size ${tot} /Root 1 0 R >>\nstartxref\n${xr}\n%%EOF`);
   return new Blob(parts,{type:'application/pdf'});
 }
-async function gerarFoto(rel){const it=itensRel(rel);return blobDe(desenharPagina(rel,it,1,1,0),'image/jpeg',0.9)}
+/* nada no filtro: não gera arquivo vazio */
+const relVazio=rel=>!rel.blocos.some(b=>(b.linhas&&b.linhas.length)||(b.kv&&b.kv.length));
 async function exportarRel(rel,tipo,nome){
+  if(relVazio(rel)){toast('Nada nesse filtro');return}
   try{toast('Gerando…');
     if(tipo==='pdf')await compartilharArquivo(await gerarPdf(rel),nomeArq(nome)+'.pdf','application/pdf');
-    if(tipo==='img')await compartilharArquivo(await gerarFoto(rel),nomeArq(nome)+'.jpg','image/jpeg');
+    if(tipo==='img')await compartilharArquivo(await gerarFoto(rel),nomeArq(nome)+'.png','image/png');
     if(tipo==='xls')await compartilharArquivo(xlsxDeRel(rel),nomeArq(nome)+'.xlsx',XT);
-  }catch(e){console.error(e);toast('Não deu para gerar o arquivo')}
+  }catch(e){console.error(e);toast(e&&e.grande?'Muitas linhas para uma foto só: use o PDF (sai em páginas) ou diminua o período':tipo==='pdf'?'Não consegui gerar o PDF':tipo==='img'?'Não consegui gerar a imagem':'Não consegui gerar o Excel')}
 }
 const botoesExp=(id)=>`<div class="compart"><button class="verde" data-a="exp" data-v="pdf">📄 PDF</button><button class="verde" data-a="exp" data-v="img">🖼 Foto</button><button class="verde" data-a="exp" data-v="xls">📊 Excel</button></div>`;
 
@@ -777,17 +780,14 @@ function celula(v,tot){
   return{v:s,s:tot?4:0};
 }
 function xlsxDeRel(rel){
-  const rows=[[{v:rel.titulo,s:6}]];[].concat(rel.sub||[]).forEach(s=>rows.push([{v:s}]));rows.push([]);let larg=[14];
-  for(const b of rel.blocos){
-    if(b.tit)rows.push([{v:b.tit,s:4}]);
-    if(b.kv)b.kv.forEach(r=>rows.push([{v:r[0]},celula(r[1])]));
-    if(b.txt)rows.push([{v:b.txt}]);
-    if(b.cols){rows.push(b.cols.map(c=>({v:c.t,s:1})));b.linhas.forEach(r=>rows.push(r.map(v=>celula(v))));if(b.total)rows.push(b.total.map(v=>celula(v,1)));
-      b.cols.forEach((c,i)=>larg[i]=Math.max(larg[i]||10,Math.min(48,Math.round(c.w/6))))}
-    rows.push([]);
-  }
-  larg[0]=Math.max(larg[0],34);larg[1]=Math.max(larg[1]||0,16);
-  return montarXlsx([[rel.xlsNome||'Relatório',rows,larg]]);
+  const abas=[],usados={},nomeAba=t=>{let n=String(t||rel.xlsNome||'Relatório').replace(/[\\\/?*\[\]:]/g,'-').slice(0,31),k=n,i=2;while(usados[k])k=n.slice(0,28)+' '+(i++);usados[k]=1;return k};
+  const res=[];rel.blocos.forEach(b=>{if(b.kv){if(b.tit)res.push([{v:b.tit,s:4}]);b.kv.forEach(r=>res.push([{v:r[0],s:r[3]?4:0},celula(r[1],r[3])]))}if(b.txt)res.push([{v:b.txt}])});
+  if(res.length)abas.push([nomeAba('Resumo'),[[{v:'Item',s:1},{v:'Valor',s:1}],...res],[40,22]]);
+  const tabs=rel.blocos.filter(b=>b.cols);
+  tabs.forEach(b=>{const rows=[b.cols.map(c=>({v:c.t,s:1})),...b.linhas.map(r=>r.map(v=>celula(v)))];if(b.total)rows.push(b.total.map(v=>celula(v,1)));
+    abas.push([nomeAba(tabs.length===1?rel.xlsNome:b.tit),rows,b.cols.map(c=>Math.max(10,Math.min(48,Math.round(c.w*1.1))))])});
+  if(!abas.length)abas.push([nomeAba(),[[{v:rel.titulo,s:1}]],[30]]);
+  return montarXlsx(abas);
 }
 /* Excel com tudo (backup legível) */
 function xlsxTudo(){
@@ -856,12 +856,13 @@ async function carregar(){
    NAVEGAÇÃO
    ===================================================================== */
 let tela='inicio',relPai='gest';
+const ICO_REDE=(document.querySelector('.icoRede')||{}).outerHTML||'🐟';
 /* menu igual ao Gestão de Tratos: tela inicial › Operacional / Gestão › telas */
-const TITULOS={inicio:'Piscicultura',oper:'Operacional',gest:'Gestão',vend:'Vender',rec:'Receber',desp:'Despesca',gdoa:'Doações',ver:'Visualizar',gvend:'Vendas',gcli:'Clientes',extr:'Extrato',gcob:'Cobrança',gfech:'Despescas',gcust:'Custos',gacer:'Acerto',gpeix:'Peixes e Tanques',gres:'Resumo',grel:'Relatórios',gconf:'Config.'};
-const ICONES={oper:'🐟',gest:'📊',vend:'⚖️',rec:'💰',desp:'🪣',gdoa:'🎁',gvend:'🧾',gcli:'👥',extr:'📄',gcob:'⏰',gfech:'📦',gcust:'💸',gacer:'🤝',gpeix:'🐠',gres:'📋',grel:'📈',gconf:'⚙️'};
-const PAI={oper:'inicio',gest:'inicio',ver:'inicio',vend:'oper',rec:'oper',desp:'oper',gdoa:'oper',gvend:'gest',gcli:'gest',extr:'gcli',gcob:'gres',gfech:'gest',gcust:'gest',gacer:'gest',gpeix:'gest',gres:'gest',gconf:'gest'};
+const TITULOS={inicio:'Piscicultura',oper:'Operacional',gest:'Gestão',vend:'Vender',rec:'Receber',desp:'Despesca',gdoa:'Doações',ver:'Resumo do dia',gvend:'Vendas',gcli:'Clientes',extr:'Extrato',gcob:'Cobrança',gfech:'Despescas',gcust:'Custos',gacer:'Acerto',gpeix:'Peixes e Tanques',gres:'Resumo',grel:'Relatórios',gconf:'Configurações'};
+const ICONES={oper:'🐟',gest:'📊',vend:'⚖️',rec:'💰',desp:ICO_REDE,ver:'📋',gdoa:'🎁',gvend:'🧾',gcli:'👥',extr:'📄',gcob:'⏰',gfech:'📦',gcust:'💸',gacer:'🤝',gpeix:'🐠',gres:'📋',grel:'📈',gconf:'⚙️'};
+const PAI={oper:'inicio',gest:'inicio',ver:'inicio',vend:'inicio',rec:'inicio',desp:'inicio',gdoa:'gest',gvend:'gest',gcli:'gest',extr:'gcli',gcob:'gest',gfech:'gest',gcust:'gest',gacer:'gest',gpeix:'gest',gres:'gest',gconf:'gest'};
 const paiDe=t=>t==='grel'?relPai:(PAI[t]||'inicio');
-const DA_GESTAO=['gest','gvend','gcli','extr','gcob','gfech','gcust','gacer','gpeix','gres','grel','gconf'];
+const DA_GESTAO=['gest','gdoa','gvend','gcli','extr','gcob','gfech','gcust','gacer','gpeix','gres','grel','gconf'];
 const FORMS=['vend','rec','desp','gdoa']; // telas de lançamento: não redesenha sozinha enquanto a pessoa digita
 const ENTRAR={},RENDER={},ACOES={},CAMPOS={};
 let manterForm=false;
@@ -871,7 +872,7 @@ function ir(t){
   tela=t;document.body.classList.toggle('naInicio',t==='inicio');
   document.querySelectorAll('.tela').forEach(e=>e.hidden=e.id!=='t-'+t);
   $('titulo').textContent=t==='inicio'?'Piscicultura':t==='grel'&&relPai==='inicio'?'Relatórios do dia':(TITULOS[t]||'Piscicultura');
-  const bar=$('barra'),c=caminho(t);bar.hidden=t==='inicio'||t==='ver';
+  const bar=$('barra'),c=caminho(t);bar.hidden=t==='inicio';
   if(!bar.hidden)$('barraTxt').innerHTML='☰ '+(t==='grel'&&relPai==='inicio'?'📤 Relatórios do dia':c.map(x=>`${ICONES[x]||''} ${esc(TITULOS[x])}`).join(' › '));
   if(t==='inicio'){cadLiberado=false;marcaQuem()}
   else if(ENTRAR[t]&&!manterForm)ENTRAR[t]();
@@ -881,9 +882,8 @@ function render(){if(RENDER[tela])RENDER[tela]();statusNuvem()}
 const ocupado=()=>FORMS.concat(['gcust','gacer','gpeix','gconf']).includes(tela)||['INPUT','TEXTAREA','SELECT'].includes((document.activeElement||{}).tagName);
 /* tela inicial: cada botão com a sua senha */
 async function entrar(m){
-  if(m==='oper'){if(!await pedirSenhaTec('Senha do Operacional','oper'))return;if(!quem()){escolherQuem(()=>ir('oper'));return}ir('oper');return}
-  if(m==='ver'){if(await pedirSenhaTec('Senha para Visualizar','ver'))ir('ver');return}
-  if(m==='rel'){if(await pedirSenhaTec('Senha para Relatórios do dia','rel')){relPai='inicio';ir('grel')}return}
+  if(m==='ver'){ir('ver');return}
+  if(['vend','rec','desp'].includes(m)){if(!quem()){escolherQuem(()=>ir(m));return}ir(m);return}
   if(m==='gest'){if(await pedirSenhaTec('Senha da Gestão','gest')){cadLiberado=true;ir('gest')}return}
 }
 document.querySelectorAll('[data-modo]').forEach(b=>b.onclick=()=>entrar(b.dataset.modo));
@@ -947,7 +947,7 @@ function checarInadimplente(c,ok){
     ${cad.params.bloquear?'<p class="note" style="color:var(--bad)">Venda bloqueada para cliente inadimplente — só continua com a senha.</p>':''}
     <div class="row"><button id="jN">Voltar</button><button class="primary" id="jS" style="background:var(--bad);border-color:var(--bad)">${cad.params.bloquear?'🔒 Liberar com senha':'Continuar mesmo assim'}</button></div>`,(j,fechar)=>{
     j.querySelector('#jN').onclick=fechar;
-    j.querySelector('#jS').onclick=async()=>{fechar();if(cad.params.bloquear){if(await pedirSenhaTec('Senha para liberar a venda','acao'))ok()}else ok()};
+    j.querySelector('#jS').onclick=async()=>{fechar();if(cad.params.bloquear){if(await pedirSenhaTec('Senha da Gestão para liberar a venda','gest'))ok()}else ok()};
   },'alerta');
 }
 function escolherClasse(ok){
