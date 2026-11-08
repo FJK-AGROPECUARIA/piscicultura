@@ -123,7 +123,7 @@ function textoExtrato(c,x){const P=cad.params,L=[`*EXTRATO — ${P.empresa}*`,`_
   if(x.p.abertos.length){L.push('','*Títulos em aberto*');x.p.abertos.forEach(t=>L.push(`• ${t.tipo==='VENDA'?numVenda(t.rec):'Ajuste'} — venc. ${fmtData(t.venc)} — ${fmtR(t.aberto)}${t.atraso>0?` (${t.atraso} dias)`:''}`))}
   L.push('',P.empresa);if(P.contato)L.push(P.contato);return L.join('\n')}
 function relExtrato(c,x){return{titulo:'Extrato do cliente',sub:[c.nome,'Período: '+x.rot],xlsNome:'Extrato',blocos:[
-  {kv:[['Cliente',nomeCli(c)],['Telefone',c.tel||'—'],['Prazo de pagamento',(c.prazo||0)+' dias']].concat(ge.de&&!ge.desp?[['Saldo anterior',fmtR(x.ant)]]:[])},
+  {kv:[['Cliente',nomeCli(c)]].concat(ge.de&&!ge.desp?[['Saldo anterior',fmtR(x.ant)]]:[])},
   {tit:'Movimentação',cols:[{t:'Data',w:11},{t:'Histórico',w:45},{t:'Débito',w:13,al:'r'},{t:'Crédito',w:13,al:'r'},{t:'Saldo',w:13,al:'r'}],linhas:x.movs.map(m=>[fmtData(m.data),m.hist,m.debito?fmtR(m.debito):'',m.credito?fmtR(m.credito):'',fmtR(m.saldo)]),total:['','Totais do período',fmtR(x.deb),fmtR(x.cred),'']},
   {tit:'Títulos em aberto',cols:[{t:'Título',w:16},{t:'Emissão',w:12},{t:'Vencimento',w:12},{t:'Valor',w:14,al:'r'},{t:'Aberto',w:14,al:'r'},{t:'Atraso',w:12,al:'r'}],linhas:x.p.abertos.map(t=>[t.tipo==='VENDA'?numCurto(t.rec):'Ajuste',fmtData(t.data),fmtData(t.venc),fmtR(t.valor),fmtR(t.aberto),t.atraso>0?t.atraso+' dias':'a vencer']),cores:x.p.abertos.map(t=>t.atraso>0?[null,null,'#b3261e',null,null,'#b3261e']:null),total:['TOTAL','','','',fmtR(x.p.aberto),'']},
   {kv:[['SALDO EM ABERTO',fmtR(x.p.aberto),null,true],['Vencido',fmtR(x.p.vencido),x.p.vencido>0?'#b3261e':null]]}]}}
