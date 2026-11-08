@@ -403,7 +403,6 @@ RENDER.gpeix=()=>{
     ${naoExcl(cad.classes).filter(c=>c.produtoId===p.id).map(c=>linhaCad(c,'classes',` <small style="color:var(--muted);font-weight:500">· ref. ${fmtR(c.preco||0)}/kg</small>`)).join('')}</div>`});
   h+=`</section>`;
   h+=`<section class="panel">${titNovo('Tanques / viveiros','addTq')}<div class="fzBloco">${naoExcl(cad.tanques).sort((a,b)=>ordTxt(a.nome,b.nome)).map(t=>linhaCad(t,'tanques')).join('')||'<div class="eqLinha"><span class="note">Nenhum tanque.</span></div>'}</div></section>`;
-  h+=`<section class="panel">${titNovo('Categorias de despesa','addCat')}<div class="fzBloco">${naoExcl(cad.categorias).sort((a,b)=>ordTxt(a.nome,b.nome)).map(t=>linhaCad(t,'categorias')).join('')}</div></section>`;
   $('t-gpeix').innerHTML=h;
 };
 const addSimples=(lista,tit,pref,up)=>campoTexto(tit,'',n=>addNome(lista,n,pref,up));
@@ -640,6 +639,7 @@ RENDER.gconf=()=>{
     <button data-a="sub" data-v="venda" style="--c:#1e6fd0"><span class="gIc">🧾</span>Venda e cobrança</button>
     <button data-a="sub" data-v="vend" style="--c:#2e8b3d"><span class="gIc">👤</span>Vendedores</button>
     <button data-a="sub" data-v="desp" style="--c:#0b3a82"><span class="gIc">📦</span>Despescas</button>
+    <button data-a="sub" data-v="cat" style="--c:#8a5a12"><span class="gIc">💸</span>Despesas (categorias)</button>
     <button data-a="sub" data-v="emp" style="--c:#8a5a12"><span class="gIc">🏢</span>Empresa</button>
     <button data-a="sub" data-v="nuvem" style="--c:#6b7479"><span class="gIc">☁️</span>Nuvem e backup</button></div>
     <p class="note" style="text-align:center">v${VERSAO} · aparelho ${esc(disp)}</p>`;return}
@@ -649,6 +649,7 @@ RENDER.gconf=()=>{
   if(gq.sub==='senha'){el.innerHTML=`<section class="panel"><h2>Senhas para abrir</h2><p class="note">Senha de cada botão da tela inicial. Deixe em branco para abrir direto, sem senha. A senha da Gestão também libera venda bloqueada e reabre despesca.</p>
       ${[['desp','🐟 Despescas'],['vendas','🧾 Vendas'],['ver','📋 Resumo do dia'],['gest','📊 Gestão']].map(([k,t])=>`<div><label>${t}</label><input type="text" inputmode="numeric" maxlength="8" id="sn_${k}" value="${esc(senhaDe(k))}" autocomplete="off" placeholder="sem senha"></div>`).join('')}
       <button class="primary" data-a="salvarSenha">Salvar senhas</button></section>`;return}
+  if(gq.sub==='cat'){let h='';h+=`<section class="panel">${titNovo('Categorias de despesa','addCat')}<div class="fzBloco">${naoExcl(cad.categorias).sort((a,b)=>ordTxt(a.nome,b.nome)).map(t=>linhaCad(t,'categorias')).join('')}</div></section>`;el.innerHTML=h+`<p class="note">Toque em ✏️ para alterar o nome, 🗑 para excluir (só se não tiver despesa lançada) ou Inativar para esconder da lista.</p>`;return}
   if(gq.sub==='emp'){const P=cad.params;el.innerHTML=`<section class="panel"><h2>Empresa (nas notas e relatórios)</h2><div><label>Empresa</label><input type="text" id="pEmp" value="${esc(P.empresa)}"></div><div><label>Unidade</label><input type="text" id="pUni" value="${esc(P.unidade)}"></div><div><label>Contato no rodapé (telefone, PIX)</label><input type="text" id="pCont" value="${esc(P.contato||'')}"></div><button class="primary" data-a="salvarEmp">Salvar</button></section>`;return}
   const idx=[].concat(mapa[gq.sub]);
   secs.forEach((s,i)=>{if(!idx.includes(i))s.remove()});
@@ -656,7 +657,7 @@ RENDER.gconf=()=>{
 };
 const _acConf=ACOES.gconf;
 ACOES.gconf=Object.assign({},_acConf,{
-  sub(v){gq.sub=v;render();window.scrollTo(0,0)},
+  sub(v){gq.sub=v;render();window.scrollTo(0,0)},addCat(){ACOES.gpeix.addCat()},
   salvarP(){const P=cad.params;P.prazo=Math.max(0,parseInt($('pPrazo').value)||0);P.tolerancia=Math.max(0,parseInt($('pTol').value)||0);P.alerta=$('pAlerta').checked;P.bloquear=$('pBloq').checked;P.alt=agora();salvarCad('Parâmetros salvos')},
   salvarEmp(){const P=cad.params;P.empresa=$('pEmp').value.trim()||'FJK AGROPECUÁRIA';P.unidade=$('pUni').value.trim()||'Piscicultura';P.contato=$('pCont').value.trim();P.alt=agora();salvarCad('Salvo')},
   salvarSenha(){const S={};Object.keys(SENHAS_PADRAO).forEach(k=>{S[k]=$('sn_'+k).value.replace(/\D/g,'')});cad.params.senhas=S;cad.params.alt=agora();try{Object.keys(SENHAS_PADRAO).forEach(k=>localStorage.removeItem('pc_senhaOk_'+k))}catch(e){}salvarCad('Senhas salvas');gq.sub='';render()}});
