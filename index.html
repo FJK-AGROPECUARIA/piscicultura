@@ -445,7 +445,7 @@ body.naInicio .gIniBar{display:none}
    ===================================================================== */
 const PRAZO=5*60*1000; // quem lançou pode editar/excluir por 5 minutos sem senha
 const API_PADRAO='https://script.google.com/macros/s/AKfycbwcOrQCcLUC2FmLZPAGfmJNChxdtbh80tajcaMXLvrJaAqedwJXFuZCsDIaxQl2E67gIw/exec'; // link do Google Script (/exec) — colar aqui depois de publicar o Code.gs
-const VERSAO='17';
+const VERSAO='18';
 const K={cad:'pc_cad',db:'pc_db',fila:'pc_fila',pend:'pc_pend',api:'pc_api',disp:'pc_disp',quem:'pc_quem',rascV:'pc_rascV',sync:'pc_sync',gest:'pc_gestOk'};
 const TABS=['vendas','receb','ajustes','bags','doacoes','custos','repasses'];
 const CATS=['Ração','Oxigênio / Aeração','Combustível / Transporte','Gelo','Mão de obra (fixa)','Mão de obra (diárias)','Insumos veterinários','Energia elétrica','Manutenção / Equipamentos','Alimentação','Hospedagem','Despesas administrativas','Investimentos','Outros'];
@@ -936,7 +936,7 @@ $('wrap').addEventListener('keydown',e=>{if(e.key!=='Enter')return;const el=e.ta
 setInterval(()=>{document.querySelectorAll('.relogio[data-em]').forEach(s=>{const r=restante({em:s.dataset.em});s.textContent=r>0?mmss(r):'encerrado';if(!r){const p=s.closest('.pendItem');if(p)p.querySelectorAll('button').forEach(x=>x.disabled=true)}})},1000);
 
 /* ---------- peças comuns ---------- */
-const dataHtml=(f,v,tit='Data')=>`<div class="passo"><label>${tit}</label><div class="dataLinha ${v!==chaveDia()?'outra':''}"><input type="date" data-f="${f}" value="${v}"></div>${v!==chaveDia()?`<p class="note" style="color:var(--warn)">⚠️ Data diferente de hoje (${nomeDia(v)})</p>`:''}</div>`;
+const dataHtml=(f,v,tit='Data')=>`<div class="passo">${tit?`<label>${tit}</label>`:''}<div class="dataLinha ${v!==chaveDia()?'outra':''}"><input type="date" data-f="${f}" value="${v}"></div>${v!==chaveDia()?`<p class="note" style="color:var(--warn)">⚠️ Data diferente de hoje (${nomeDia(v)})</p>`:''}</div>`;
 function despHtml(k){const d=despescaDaData(k,false);
   return `<div class="resumoSel" style="display:flex;justify-content:space-between;gap:8px;align-items:center"><span>📦 ${esc(d?d.descricao:descSemana(k))}</span>${d&&d.encerrada?'<span class="estado fechada">ENCERRADA</span>':'<span class="estado aberta">ABERTA</span>'}</div>${d&&d.encerrada?'<p class="note" style="color:var(--bad)">Esta despesca está encerrada: não aceita lançamentos. Para lançar, reabra em Gestão → Fechamento.</p>':''}`}
 const despFechada=k=>{const d=despescaDaData(k,false);return !!(d&&d.encerrada)};
@@ -1014,7 +1014,7 @@ function vencPadrao(){const c=cliPorId(fv.cliId);return somaDias(fv.data,c?Numbe
 RENDER.vend=()=>{
   const el=$('t-vend'),c=cliPorId(fv.cliId);if(!fv.vencManual)fv.venc=fv.cliId?vencPadrao():'';
   let h=quemHtml()+(fv.editId?`<div class="leitura aviso">✏️ Editando ${esc(numVenda(fv))} — grave para salvar as alterações.</div>`:'');
-  h+=`<section class="panel"><h2>Data e despesca</h2>${dataHtml('data',fv.data)}${despHtml(fv.data)}</section>`;
+  h+=`<section class="panel"><h2>Data</h2>${dataHtml('data',fv.data,'')}</section><section class="panel"><h2>Despesca</h2>${despHtml(fv.data)}</section>`;
   h+=`<section class="panel">${titNovo('Cliente','cliNovo')}`;
   if(c){const p=posicao(c.id);h+=`<div class="resumoSel" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span>👤 ${esc(nomeCli(c))}<br><small style="font-weight:500">Em aberto: <b class="${p.vencido>0?'neg':''}">${fmtR(p.aberto)}</b>${p.vencido>0?` · vencido ${fmtR(p.vencido)}`:''} · prazo ${c.prazo||0} dias</small></span><button class="mini" data-a="cliTroca">Trocar</button></div>`}
   else h+=`<div class="cliBox">${clientesGrade(fv.busca,null)}</div>`;
@@ -1153,7 +1153,7 @@ let fr=null;
 ENTRAR.rec=()=>{fr={data:chaveDia(),cliId:null,valor:'',desc:'',forma:'PIX',doc:'',obs:'',busca:''}};
 RENDER.rec=()=>{
   const el=$('t-rec'),c=cliPorId(fr.cliId);let h=quemHtml();
-  h+=`<section class="panel"><h2>Data</h2>${dataHtml('data',fr.data)}</section><section class="panel">${titNovo('Cliente','cliNovo')}`;
+  h+=`<section class="panel"><h2>Data</h2>${dataHtml('data',fr.data,'')}</section><section class="panel">${titNovo('Cliente','cliNovo')}`;
   if(c){const p=posicao(c.id);h+=`<div class="resumoSel" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span>👤 ${esc(nomeCli(c))}</span><button class="mini" data-a="cliTroca">Trocar</button></div>
     <div class="stat"><div><small>Em aberto</small><b class="num">${fmtR(p.aberto)}</b></div><div><small>Vencido</small><b class="num ${p.vencido>0?'neg':''}">${fmtR(p.vencido)}</b></div></div>
     ${p.abertos.length?`<div class="tabWrap"><table class="tabela"><tr><th>Título</th><th>Venc.</th><th class="r">Aberto</th><th></th></tr>${p.abertos.map(t=>`<tr><td>${t.tipo==='VENDA'?esc(numCurto(t.rec)):'Ajuste'}<br><small>${fmtData(t.data)}</small></td><td>${fmtData(t.venc)}</td><td class="r">${fmtR(t.aberto)}</td><td class="r">${sitTag(t)}</td></tr>`).join('')}</table></div><p class="note">O recebimento quita os títulos mais antigos primeiro.</p>`:'<div class="vazio">Cliente sem débito em aberto.</div>'}`}
@@ -1216,7 +1216,7 @@ function resumoBags(l){const kg=r3(l.reduce((s,b)=>s+Number(b.peso||0),0)),q=l.r
 RENDER.desp=()=>{
   const el=$('t-desp'),d=despescaDaData(fb.data,false),tq=ativos(cad.tanques),pr=ativos(cad.produtos);
   if(!fb.produtoId&&pr.length===1)fb.produtoId=pr[0].id;
-  let h=quemHtml()+`<section class="panel"><h2>Data e despesca</h2>${dataHtml('data',fb.data)}${despHtml(fb.data)}</section>`;
+  let h=quemHtml()+`<section class="panel"><h2>Data</h2>${dataHtml('data',fb.data,'')}</section><section class="panel"><h2>Despesca</h2>${despHtml(fb.data)}</section>`;
   h+=`<section class="panel"><h2>Pesar bag</h2><label>Tanque / viveiro</label>${tq.length?`<div class="escolha">${tq.map(t=>`<button data-a="tq" data-v="${esc(t.nome)}" class="${fb.tanque===t.nome?'sel':''}">${esc(t.nome)}</button>`).join('')}</div>`:'<div class="vazio">Nenhum tanque cadastrado.</div>'}<button class="mini" data-a="tqNovo">+ Tanque</button>
     <label>Peixe</label><div class="escolha eq">${pr.map(p=>`<button data-a="pr" data-v="${p.id}" class="${fb.produtoId===p.id?'sel':''}">${esc(p.nome)}</button>`).join('')}</div>
     <div><label>Peso LÍQUIDO do bag (kg)</label><input type="text" class="big" id="bagPeso" data-f="peso" inputmode="decimal" value="${esc(fb.peso)}" placeholder="0,0" data-enter="gravar"></div>
