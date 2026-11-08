@@ -102,10 +102,10 @@ RENDER.extr=()=>{
   let h=`<section class="panel"><div class="curhead"><h2>${esc(c.nome)}</h2><button class="mini" data-a="editar">✏️ Cadastro</button></div>
     <p class="note">${[c.apelido,c.tel,c.cidade,c.bairro].filter(Boolean).map(esc).join(' · ')||'—'} · prazo ${c.prazo||0} dias</p>
     <div class="stat"><div><small>Em aberto</small><b class="num">${fmtR(x.p.aberto).replace('R$ ','')}</b></div><div><small>Vencido</small><b class="num ${x.p.vencido>0?'neg':''}">${fmtR(x.p.vencido).replace('R$ ','')}</b></div><div><small>Maior atraso</small><b class="num">${x.p.maiorAtraso} d</b></div></div>
-    <div class="row"><button data-a="precos">💲 Preços negociados</button><button data-a="ajuste">± Ajuste / desconto</button></div>
+    <button data-a="precos">💲 Preços negociados</button>
     <div class="compart"><button class="verde" data-a="exp" data-v="img">🖼 Foto</button><button class="verde" data-a="exp" data-v="pdf">📄 PDF</button><button class="verde" data-a="exp" data-v="xls">📊 Excel</button></div></section>`;
   if(x.p.abertos.length)h+=`<section class="panel"><h2>Títulos em aberto</h2><div class="tabWrap"><table class="tabela"><tr><th>Título</th><th>Venc.</th><th class="r">Valor</th><th class="r">Aberto</th></tr>${x.p.abertos.map(t=>`<tr><td>${t.tipo==='VENDA'?esc(numCurto(t.rec)):'Ajuste'}<br><small>${fmtData(t.data)}</small></td><td>${fmtData(t.venc)}<br>${sitTag(t)}</td><td class="r">${fmtR(t.valor)}</td><td class="r"><b>${fmtR(t.aberto)}</b></td></tr>`).join('')}<tr class="tot"><td colspan="3">Total em aberto</td><td class="r">${fmtR(x.p.aberto)}</td></tr></table></div></section>`;
-  h+=`<section class="panel"><h2>Movimentação</h2>${ge.desp?'':perHtml(ge,{tudo:true})}${despSelHtml(ge.desp,true,'Por ciclo de despesca')}
+  h+=`<section class="panel">${titNovo('Movimentação','ajuste',null,'Ajuste')}${ge.desp?'':perHtml(ge,{tudo:true})}${despSelHtml(ge.desp,true,'Por ciclo de despesca')}
     ${ge.de&&!ge.desp?`<div class="kv"><div><span>Saldo anterior a ${fmtData(ge.de)}</span><b>${fmtR(x.ant)}</b></div></div>`:''}`;
   h+=x.movs.slice().reverse().map(m=>`<button class="reg" data-a="mov" data-v="${m.tipo}:${m.ref}"><div><span class="eqn" style="font-size:1.05rem">${fmtData(m.data)} · ${m.tipo==='VENDA'?'Compra':m.tipo==='PAGAMENTO'?'Pagamento':m.tipo==='DEBITO'?'Débito':'Crédito'}</span><div class="faz">${esc(m.hist)}</div>${m.tipo==='VENDA'?`<div class="faz">${sitTag(x.p.titulos.find(t=>t.ref===m.ref)||{aberto:0})}</div>`:''}</div><div class="lt ${m.credito?'mais':''}">${m.debito?fmtR(m.debito):'− '+fmtR(m.credito)}<small>saldo ${fmtR(m.saldo)}</small></div></button>`).join('')||'<div class="vazio">Sem movimentação no período.</div>';
   h+=`<div class="kv"><div><span>Compras no período</span><b>${fmtR(x.deb)}</b></div><div><span>Pagamentos/créditos no período</span><b class="pos">${fmtR(x.cred)}</b></div>${x.kg?`<div><span>Peso comprado</span><b>${fmtKg(x.kg)} kg</b></div>`:''}<div class="forte"><span>Saldo em aberto</span><b class="${x.p.vencido>0?'neg':''}">${fmtR(x.p.aberto)}</b></div></div></section>`;
@@ -244,7 +244,7 @@ ACOES.gfech={
    ===================================================================== */
 const gk={desp:'',f:null};
 const custoNovo=()=>({data:chaveDia(),cat:'',valor:'',desc:'',pago:'fazenda',quem:'',nd:'1',np:'1',vd:''});
-ENTRAR.gcust=()=>{gk.desp=despescaDaData(chaveDia(),false)?.id||despPadrao()||'';gk.f=custoNovo()};
+ENTRAR.gcust=()=>{gk.aberto=false;gk.desp=despescaDaData(chaveDia(),false)?.id||despPadrao()||'';gk.f=custoNovo()};
 const pagoPorTxt=c=>c.pago==='emmaos'?'Dinheiro em mãos'+(c.quem?' ('+c.quem+')':''):c.pago==='reembolsar'?'Reembolsar '+(c.quem||''):'Fazenda';
 const ehDiaria=cat=>/di[aá]ria/i.test(cat||'');
 RENDER.gcust=()=>{
@@ -252,15 +252,15 @@ RENDER.gcust=()=>{
   const tot=r2(l.reduce((s,c)=>s+Number(c.valor||0),0)),reemb={};l.filter(c=>c.pago==='reembolsar').forEach(c=>reemb[c.quem||'—']=r2((reemb[c.quem||'—']||0)+Number(c.valor)));
   const nomes=[...new Set(db.custos.map(c=>c.quem).filter(Boolean).concat(ativos(cad.vendedores).map(v=>v.nome)))];
   let h=`<section class="panel"><h2>Despesca</h2>${cad.despescas.length?despSelHtml(gk.desp,false):'<p class="note">A despesca da semana é criada ao gravar a primeira despesa.</p>'}</section>
-   <section class="panel"><h2>Lançar despesa</h2>${dataHtml('data',f.data)}
+   ${gk.aberto?`<section class="panel"><div class="curhead"><h2>${gk.f.editId?'Editar':'Nova'} despesa</h2><button class="mini" data-a="fechaForm">✖ Cancelar</button></div>${dataHtml('data',f.data)}
     <div><label>Categoria</label><div class="combo"><input type="text" id="cuCat" data-f="catTxt" value="${esc(f.catTxt!=null?f.catTxt:f.cat)}" autocomplete="off" autocapitalize="characters"><button type="button" class="comboSeta" data-a="catAbre" aria-label="Abrir lista">▾</button><div class="comboLista" id="cuLista" hidden></div></div></div>
     ${ehDiaria(f.cat)?`<div class="datas" style="grid-template-columns:1fr 1fr 1fr"><div><label>Diárias</label><input type="text" inputmode="decimal" data-f="nd" value="${esc(f.nd)}"></div><div><label>Pessoas</label><input type="number" inputmode="numeric" data-f="np" value="${esc(f.np)}"></div><div><label>R$ diária</label><input type="text" inputmode="decimal" data-f="vd" value="${esc(f.vd)}"></div></div><div class="resumoSel" id="cuTot">Total: ${fmtR(r2((numBR(f.nd)||0)*(parseInt(f.np)||0)*(numBR(f.vd)||0)))}</div>`
       :`<div><label>Valor (R$)</label><input type="text" class="big" inputmode="decimal" data-f="valor" value="${esc(f.valor)}" placeholder="0,00"></div>`}
     <div><label>Descrição</label><input type="text" data-f="desc" value="${esc(f.desc)}"></div>
     <label>Quem pagou</label><div class="tipoMov">${[['fazenda','Fazenda'],['emmaos','Dinheiro em mãos'],['reembolsar','Terceiro (reembolsar)']].map(([k,t])=>`<button data-a="pago" data-v="${k}" class="${f.pago===k?'sel':''}">${t}</button>`).join('')}</div>
     ${f.pago!=='fazenda'?`<div><label>${f.pago==='emmaos'?'Vendedor que pagou (abate no acerto)':'Quem pagou (a reembolsar)'}</label><input type="text" data-f="quem" list="cuNomes" value="${esc(f.quem)}"><datalist id="cuNomes">${nomes.map(n=>`<option value="${esc(n)}">`).join('')}</datalist></div>`:''}
-    <button class="verde" data-a="gravar">✔ GRAVAR DESPESA</button></section>
-   <section class="panel"><h2>Despesas da despesca</h2><div class="stat"><div><small>Lançamentos</small><b class="num">${l.length}</b></div><div><small>Custo total</small><b class="num">${fmtR(tot).replace('R$ ','')}</b></div></div>
+    <button class="verde" data-a="gravar">✔ GRAVAR DESPESA</button></section>`:''}
+   <section class="panel">${titNovo('Despesas da despesca','novoForm')}<div class="stat"><div><small>Lançamentos</small><b class="num">${l.length}</b></div><div><small>Custo total</small><b class="num">${fmtR(tot).replace('R$ ','')}</b></div></div>
     ${Object.keys(reemb).length?`<div class="kv">${Object.entries(reemb).map(([k,v])=>`<div><span>A reembolsar — ${esc(k)}</span><b class="neg">${fmtR(v)}</b></div>`).join('')}</div>`:''}
     ${l.map(c=>`<button class="reg" data-a="ed" data-v="${c.id}"><div><span class="eqn">${esc(c.categoria)}</span><div class="faz">${fmtData(c.data)} · ${esc(pagoPorTxt(c))}</div>${c.desc?`<div class="obs">${esc(c.desc)}</div>`:''}</div><div class="lt">${fmtR(c.valor)}</div></button>`).join('')||'<div class="vazio">Nenhuma despesa lançada.</div>'}</section>`;
   $('t-gcust').innerHTML=h;
@@ -281,7 +281,8 @@ ACOES.gcust={cat(v){gk.f.cat=v;gk.f.catTxt=null;render()},catEsc(v){gk.f.cat=v;g
     let d=despPorId(gk.desp);if(!d||F.data<d.ini||F.data>d.fim){d=despescaDaData(F.data,true);gk.desp=d.id}
     if(d.encerrada){toast('Despesca encerrada — reabra no Fechamento');return}
     salvarReg('custos',{id:'cu-'+uid(),despescaId:d.id,data:F.data,categoria:F.cat,valor:v,desc:F.desc.trim()||(di?`${F.nd} diária(s) × ${F.np} pessoa(s) × ${fmtR(numBR(F.vd))}`:''),pago:F.pago,quem:F.pago==='fazenda'?'':F.quem.trim(),...(di?{diarias:numBR(F.nd),pessoas:parseInt(F.np),valorDiaria:numBR(F.vd)}:{})},true);
-    gk.f={...custoNovo(),data:F.data,pago:F.pago,quem:F.quem};render();toast('Despesa gravada')},
+    gk.f={...custoNovo(),data:F.data,pago:F.pago,quem:F.quem};gk.aberto=false;render();toast('Despesa gravada')},
+  novoForm(){gk.aberto=true;gk.f={...custoNovo(),data:gk.f.data||chaveDia()};render();window.scrollTo(0,0)},fechaForm(){gk.aberto=false;render()},
   ed(id){const c=db.custos.find(x=>x.id===id);if(!c)return;if((despPorId(c.despescaId)||{}).encerrada){toast('Despesca encerrada');return}
     janela(`<h3>✏️ ${esc(c.categoria)}</h3><div class="datas"><div><label>Data</label><input type="date" id="jD" value="${c.data}"></div><div><label>Valor</label><input type="text" id="jV" inputmode="decimal" value="${txtBR(c.valor)}"></div></div>
       <div><label>Categoria</label><select id="jC">${ativos(cad.categorias).slice().sort((a,b)=>ordTxt(a.nome,b.nome)).map(x=>`<option ${x.nome===c.categoria?'selected':''}>${esc(x.nome)}</option>`).join('')}</select></div>
@@ -296,7 +297,7 @@ ACOES.gcust={cat(v){gk.f.cat=v;gk.f.catTxt=null;render()},catEsc(v){gk.f.cat=v;g
    ===================================================================== */
 const ga={per:'mes',de:'',ate:'',vend:'',f:null};
 const repNovo=()=>({data:chaveDia(),valor:'',forma:'PIX',doc:'',recPor:'',obs:''});
-ENTRAR.gacer=()=>{aplicaPer(ga,'mes');ga.f=repNovo()};
+ENTRAR.gacer=()=>{ga.aberto=false;aplicaPer(ga,'mes');ga.f=repNovo()};
 function acerto(){
   const dV=x=>!ga.vend||x===ga.vend,ant=k=>ga.de&&k<ga.de,per=k=>noPer(ga,k);
   const soma=(l,f)=>r2(l.filter(f).reduce((s,x)=>s+Number(x.valor||0),0));
@@ -316,12 +317,12 @@ RENDER.gacer=()=>{
     <div class="forte"><span>= Valor em mãos</span><b class="${a.emMaos<0?'neg':''}">${fmtR(a.emMaos)}</b></div></div>
     <div class="kv"><div><span>Vendas no período</span><b>${fmtR(a.vendas)}</b></div><div><span>Descontos concedidos</span><b>${fmtR(a.desc)}</b></div><div><span>A receber dos clientes (hoje)</span><b>${fmtR(a.aRec)}</b></div><div><span>Vencido</span><b class="neg">${fmtR(a.venc)}</b></div></div>
     <div class="compart"><button class="verde" data-a="exp" data-v="img">🖼 Foto</button><button class="verde" data-a="exp" data-v="pdf">📄 PDF</button><button class="verde" data-a="exp" data-v="xls">📊 Excel</button></div></section>
-   <section class="panel"><h2>Lançar repasse à fazenda</h2>${dataHtml('data',f.data)}<div><label>Valor (R$)</label><input type="text" class="big" inputmode="decimal" data-f="valor" value="${esc(f.valor)}" placeholder="0,00"></div>
+   ${ga.aberto?`<section class="panel"><div class="curhead"><h2>Novo repasse à fazenda</h2><button class="mini" data-a="fechaForm">✖ Cancelar</button></div>${dataHtml('data',f.data)}<div><label>Valor (R$)</label><input type="text" class="big" inputmode="decimal" data-f="valor" value="${esc(f.valor)}" placeholder="0,00"></div>
     <div class="chips">${['PIX','DINHEIRO','TRANSFERÊNCIA','DEPÓSITO'].map(x=>`<button data-a="forma" data-v="${x}" class="${f.forma===x?'sel':''}">${x}</button>`).join('')}</div>
     <div class="datas"><div><label>Comprovante</label><input type="text" data-f="doc" value="${esc(f.doc)}"></div><div><label>Recebido por</label><input type="text" data-f="recPor" value="${esc(f.recPor)}"></div></div>
     <div><label>Observação</label><input type="text" data-f="obs" value="${esc(f.obs)}"></div><p class="note">Vendedor: <b>${esc(ga.vend||quem()||'—')}</b></p>
-    <button class="verde" data-a="gravar">✔ GRAVAR REPASSE</button></section>
-   <section class="panel"><h2>Repasses no período</h2>${a.lRep.map(r=>`<button class="reg" data-a="ed" data-v="${r.id}"><div><span class="eqn">${fmtData(r.data)} · ${esc(r.forma||'')}</span><div class="faz">${esc(r.vendedor||'')}${r.recPor?' → '+esc(r.recPor):''}${r.doc?' · '+esc(r.doc):''}</div></div><div class="lt">${fmtR(r.valor)}</div></button>`).join('')||'<div class="vazio">Nenhum repasse no período.</div>'}</section>`;
+    <button class="verde" data-a="gravar">✔ GRAVAR REPASSE</button></section>`:''}
+   <section class="panel">${titNovo('Repasses no período','novoForm')}${a.lRep.map(r=>`<button class="reg" data-a="ed" data-v="${r.id}"><div><span class="eqn">${fmtData(r.data)} · ${esc(r.forma||'')}</span><div class="faz">${esc(r.vendedor||'')}${r.recPor?' → '+esc(r.recPor):''}${r.doc?' · '+esc(r.doc):''}</div></div><div class="lt">${fmtR(r.valor)}</div></button>`).join('')||'<div class="vazio">Nenhum repasse no período.</div>'}</section>`;
   $('t-gacer').innerHTML=h;
 };
 function relAcerto(a){return{titulo:'Acerto com a fazenda',sub:[descPer(ga),'Vendedor: '+(ga.vend||'todos')],xlsNome:'Acerto',blocos:[
@@ -336,7 +337,8 @@ ACOES.gacer={per(v){aplicaPer(ga,v);render()},vend(v){ga.vend=v;render()},forma(
   wa(){const a=acerto(),P=cad.params;compartilharTexto([`*${P.empresa} — Acerto com a fazenda*`,`Período: ${descPer(ga)} · vendedor: ${ga.vend||'todos'}`,'',...(ga.de?[`Residual anterior: ${fmtR(a.residual)}`]:[]),`+ Recebido: ${fmtR(a.recebido)}`,`− Repassado: ${fmtR(a.repassado)}`,`− Despesas em mãos: ${fmtR(a.emMaosDesp)}`,`*= Em mãos: ${fmtR(a.emMaos)}*`,'',`A receber dos clientes: ${fmtR(a.aRec)} (vencido ${fmtR(a.venc)})`].join('\n'))},
   exp(t){exportarRel(relAcerto(acerto()),t,'Acerto '+descPer(ga).replace(/\//g,'-'))},
   gravar(){const F=ga.f,v=r2(numBR(F.valor));if(!(v>0)){toast('Informe o valor');return}const vd=ga.vend||quem();if(!vd){toast('Escolha o vendedor');return}
-    salvarReg('repasses',{id:'rp-'+uid(),data:F.data,valor:v,forma:F.forma,doc:F.doc.trim(),recPor:F.recPor.trim(),obs:F.obs.trim(),vendedor:vd},true);ga.f=repNovo();render();toast('Repasse gravado')},
+    salvarReg('repasses',{id:'rp-'+uid(),data:F.data,valor:v,forma:F.forma,doc:F.doc.trim(),recPor:F.recPor.trim(),obs:F.obs.trim(),vendedor:vd},true);ga.f=repNovo();ga.aberto=false;render();toast('Repasse gravado')},
+  novoForm(){ga.aberto=true;ga.f=repNovo();render();setTimeout(()=>{const x=document.querySelector('#t-gacer [data-a=fechaForm]');if(x)x.scrollIntoView({block:'start'})},50)},fechaForm(){ga.aberto=false;render()},
   ed(id){const r=db.repasses.find(x=>x.id===id);if(!r)return;janela(`<h3>✏️ Repasse</h3><div class="datas"><div><label>Data</label><input type="date" id="jD" value="${r.data}"></div><div><label>Valor</label><input type="text" id="jV" inputmode="decimal" value="${txtBR(r.valor)}"></div></div><div><label>Comprovante</label><input type="text" id="jC" value="${esc(r.doc||'')}"></div>
     <div class="row"><button class="danger" id="jX">🗑 Excluir</button><button class="primary" id="jO">Salvar</button></div>`,(j,fechar)=>{
     j.querySelector('#jX').onclick=()=>{fechar();confirmarExcluir(`Excluir repasse de ${fmtR(r.valor)}?`,()=>{apagarReg('repasses',r.id);render()})};
@@ -347,17 +349,17 @@ ACOES.gacer={per(v){aplicaPer(ga,v);render()},vend(v){ga.vend=v;render()},forma(
    ===================================================================== */
 const gd={desp:'',f:null};
 const doaNovo=()=>({data:chaveDia(),dest:'',produtoId:(ativos(cad.produtos)[0]||{}).id||'',peso:'',qtd:'',fin:'',obs:''});
-ENTRAR.gdoa=()=>{gd.desp=despescaDaData(chaveDia(),false)?.id||despPadrao()||'';gd.f=doaNovo()};
+ENTRAR.gdoa=()=>{gd.aberto=false;gd.desp=despescaDaData(chaveDia(),false)?.id||despPadrao()||'';gd.f=doaNovo()};
 RENDER.gdoa=()=>{
   const f=gd.f,l=db.doacoes.filter(x=>x.despescaId===gd.desp).sort((a,b)=>b.data.localeCompare(a.data)),kg=r3(l.reduce((s,x)=>s+Number(x.peso||0),0));
   const dests=[...new Set(cad.clientes.filter(c=>c.doacao&&!c.inativo).map(c=>c.nome).concat(db.doacoes.map(d=>d.destinatario)))].sort(ordTxt);
   $('t-gdoa').innerHTML=`<section class="panel"><h2>Despesca</h2>${cad.despescas.length?despSelHtml(gd.desp,false):'<p class="note">Criada sozinha ao gravar.</p>'}</section>
-   <section class="panel"><h2>Lançar doação</h2>${dataHtml('data',f.data)}<div><label>Destinatário *</label><input type="text" data-f="dest" list="doNomes" value="${esc(f.dest)}"><datalist id="doNomes">${dests.map(n=>`<option value="${esc(n)}">`).join('')}</datalist></div>
+   ${gd.aberto?`<section class="panel"><div class="curhead"><h2>Nova doação</h2><button class="mini" data-a="fechaForm">✖ Cancelar</button></div>${dataHtml('data',f.data)}<div><label>Destinatário *</label><input type="text" data-f="dest" list="doNomes" value="${esc(f.dest)}"><datalist id="doNomes">${dests.map(n=>`<option value="${esc(n)}">`).join('')}</datalist></div>
     <label>Peixe</label><div class="escolha eq">${ativos(cad.produtos).map(p=>`<button data-a="pr" data-v="${p.id}" class="${f.produtoId===p.id?'sel':''}">${esc(p.nome)}</button>`).join('')}</div>
     <div class="datas"><div><label>Peso (kg)</label><input type="text" inputmode="decimal" data-f="peso" value="${esc(f.peso)}"></div><div><label>Peixes</label><input type="number" data-f="qtd" value="${esc(f.qtd)}"></div></div>
-    <div class="datas"><div><label>Finalidade</label><input type="text" data-f="fin" value="${esc(f.fin)}" placeholder="Ex.: igreja, escola"></div><div><label>Observação</label><input type="text" data-f="obs" value="${esc(f.obs)}"></div></div>
-    <button class="verde" data-a="gravar">✔ GRAVAR DOAÇÃO</button></section>
-   <section class="panel"><h2>Doações da despesca</h2><div class="stat"><div><small>Doações</small><b class="num">${l.length}</b></div><div><small>Kg doados</small><b class="num">${fmtKg(kg)}</b></div></div>
+    <div class="datas"><div><label>Finalidade</label><input type="text" data-f="fin" value="${esc(f.fin)}"></div><div><label>Observação</label><input type="text" data-f="obs" value="${esc(f.obs)}"></div></div>
+    <button class="verde" data-a="gravar">✔ GRAVAR DOAÇÃO</button></section>`:''}
+   <section class="panel">${titNovo('Doações da despesca','novoForm')}<div class="stat"><div><small>Doações</small><b class="num">${l.length}</b></div><div><small>Kg doados</small><b class="num">${fmtKg(kg)}</b></div></div>
     ${l.map(x=>`<button class="reg" data-a="ed" data-v="${x.id}"><div><span class="eqn">${esc(x.destinatario)}</span><div class="faz">${fmtData(x.data)} · ${esc(x.produto)}${x.fin?' · '+esc(x.fin):''}</div></div><div class="lt">${fmtKg(x.peso)}<small>kg</small></div></button>`).join('')||'<div class="vazio">Nenhuma doação.</div>'}</section>`;
 };
 CAMPOS.gdoa=(f,el,ev)=>{if(f==='desp'){gd.desp=el.value;render();return}if(f==='data'){if(ev==='change'&&el.value){gd.f.data=el.value;render()}return}gd.f[f]=el.value};
@@ -366,7 +368,8 @@ ACOES.gdoa={pr(v){gd.f.produtoId=v;render()},
     if(despFechada(F.data)){toast('Despesca encerrada');return}const d=despescaDaData(F.data,true),p=prodPorId(F.produtoId)||{};gd.desp=d.id;
     const cli=cad.clientes.find(c=>semAcento(c.nome)===semAcento(F.dest.trim()));
     salvarReg('doacoes',{id:'do-'+uid(),despescaId:d.id,data:F.data,destinatario:F.dest.trim().toUpperCase(),clienteId:cli?cli.id:'',produtoId:p.id||'',produto:p.nome||'',peso:r3(kg),qtd:parseInt(F.qtd)||0,finalidade:F.fin.trim(),obs:F.obs.trim()},true);
-    gd.f={...doaNovo(),data:F.data};render();toast('Doação gravada')},
+    gd.f={...doaNovo(),data:F.data};gd.aberto=false;render();toast('Doação gravada')},
+  novoForm(){gd.aberto=true;gd.f=doaNovo();render();window.scrollTo(0,0)},fechaForm(){gd.aberto=false;render()},
   ed(id){const x=db.doacoes.find(z=>z.id===id);if(!x)return;if(despFechada(x.data)){toast('Despesca encerrada');return}
     janela(`<h3>🎁 ${esc(x.destinatario)}</h3><div class="datas"><div><label>Peso (kg)</label><input type="text" id="jP" inputmode="decimal" value="${txtBR(x.peso,3)}"></div><div><label>Peixes</label><input type="number" id="jQ" value="${x.qtd||''}"></div></div>
       <div class="row"><button class="danger" id="jX">🗑 Excluir</button><button class="primary" id="jO">Salvar</button></div>`,(j,fechar)=>{

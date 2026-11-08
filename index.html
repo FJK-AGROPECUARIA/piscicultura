@@ -328,6 +328,8 @@ body.naInicio .gIniBar{display:none}
 .curhead .novoBt{flex:none;width:auto;min-height:0;padding:7px 14px;margin:0;border-radius:99px;background:var(--accent);border-color:var(--accent);color:#fff;font-weight:800;font-size:.9rem}
 .eqLinha .excluirBt{color:var(--bad);border-color:#f0c4c0;background:#fff}.excluirCli{color:var(--bad);border-color:var(--bad);background:#fff;margin-top:8px}
 .curhead:has(.novoBt){flex-wrap:nowrap;align-items:center}.curhead:has(.novoBt) h2{flex:1;min-width:0;margin-bottom:0}
+.comboLista button small{display:block;font-weight:500;font-size:.8rem;color:var(--muted);margin-top:2px}.comboLista button.venc small{color:var(--bad)}.comboLista button.sel small{color:#e3eefb}.cliCombo .comboLista{max-height:320px}
+.atalhos .mini{white-space:nowrap;font-size:.8rem;padding:8px 2px}
 </style>
 </head>
 <body class="naInicio">
@@ -361,8 +363,8 @@ body.naInicio .gIniBar{display:none}
 <div class="tela" id="t-vendas" hidden>
     <div class="gTiles">
       <button data-ir="vend" style="--c:#1e6fd0"><span class="gIc">⚖️</span>Vender</button>
-      <button data-ir="gvend" style="--c:#0b3a82"><span class="gIc">🧾</span>Vendas</button>
       <button data-ir="gcli" style="--c:#1f7a4d"><span class="gIc">👥</span>Clientes / Extrato</button>
+      <button data-ir="gvend" style="--c:#0b3a82"><span class="gIc">🧾</span>Vendas efetivadas</button>
       <button data-ir="gcob" style="--c:#b3261e"><span class="gIc">⏰</span>Cobrança</button>
       <button data-ir="gcust" style="--c:#8a5a12"><span class="gIc">💸</span>Despesas</button>
     </div>
@@ -421,7 +423,7 @@ body.naInicio .gIniBar{display:none}
    ===================================================================== */
 const PRAZO=5*60*1000; // quem lançou pode editar/excluir por 5 minutos sem senha
 const API_PADRAO='https://script.google.com/macros/s/AKfycbwcOrQCcLUC2FmLZPAGfmJNChxdtbh80tajcaMXLvrJaAqedwJXFuZCsDIaxQl2E67gIw/exec'; // link do Google Script (/exec) — colar aqui depois de publicar o Code.gs
-const VERSAO='8';
+const VERSAO='9';
 const K={cad:'pc_cad',db:'pc_db',fila:'pc_fila',pend:'pc_pend',api:'pc_api',disp:'pc_disp',quem:'pc_quem',rascV:'pc_rascV',sync:'pc_sync',gest:'pc_gestOk'};
 const TABS=['vendas','receb','ajustes','bags','doacoes','custos','repasses'];
 const CATS=['Ração','Oxigênio / Aeração','Combustível / Transporte','Gelo','Mão de obra (fixa)','Mão de obra (diárias)','Insumos veterinários','Energia elétrica','Manutenção / Equipamentos','Alimentação','Hospedagem','Despesas administrativas','Investimentos','Outros'];
@@ -870,7 +872,7 @@ async function carregar(){
 let tela='inicio',relPai='gest';
 const ICO_REDE=(document.querySelector('.icoRede')||{}).outerHTML||'🐟';
 /* menu igual ao Gestão de Tratos: tela inicial › Operacional / Gestão › telas */
-const TITULOS={inicio:'Piscicultura',oper:'Operacional',gest:'Gestão',vend:'Vender',rec:'Receber',desp:'Despesca',gdoa:'Doações',ver:'Resumo do dia',vendas:'Vendas',gvend:'Vendas lançadas',gcli:'Clientes',extr:'Extrato',gcob:'Cobrança',gfech:'Despescas',gcust:'Despesas',gacer:'Acerto',gpeix:'Peixes e Tanques',gres:'Resumo',grel:'Relatórios',gconf:'Configurações'};
+const TITULOS={inicio:'Piscicultura',oper:'Operacional',gest:'Gestão',vend:'Vender',rec:'Receber',desp:'Despesca',gdoa:'Doações',ver:'Resumo do dia',vendas:'Vendas',gvend:'Vendas efetivadas',gcli:'Clientes',extr:'Extrato',gcob:'Cobrança',gfech:'Despescas',gcust:'Despesas',gacer:'Acerto',gpeix:'Peixes e Tanques',gres:'Resumo',grel:'Relatórios',gconf:'Configurações'};
 const ICONES={oper:'🐟',gest:'📊',vend:'⚖️',rec:'💰',desp:ICO_REDE,ver:'📋',gdoa:'🎁',vendas:'🧾',gvend:'🧾',gcli:'👥',extr:'📄',gcob:'⏰',gfech:'📦',gcust:'💸',gacer:'🤝',gpeix:'🐠',gres:'📋',grel:'📈',gconf:'⚙️'};
 const PAI={oper:'inicio',gest:'inicio',ver:'inicio',vendas:'inicio',vend:'vendas',rec:'inicio',desp:'inicio',gdoa:'gest',gvend:'vendas',gcli:'vendas',extr:'gcli',gcob:'vendas',gfech:'gest',gcust:'vendas',gacer:'gest',gpeix:'gest',gres:'gest',gconf:'gest'};
 const paiDe=t=>t==='grel'?relPai:(PAI[t]||'inicio');
@@ -921,14 +923,16 @@ function clientesGrade(busca,sel,opc={}){
   const q=semAcento(busca);if(q)l=l.filter(c=>semAcento(c.nome+' '+(c.apelido||'')+' '+(c.cidade||'')+' '+(c.bairro||'')).includes(q));
   const pos={};l.forEach(c=>pos[c.id]=posicao(c.id));
   if(opc.porSaldo)l.sort((a,b)=>pos[b.id].aberto-pos[a.id].aberto||ordTxt(a.nome,b.nome));else l.sort((a,b)=>ordTxt(a.nome,b.nome));
-  const tot=l.length;l=l.slice(0,q?40:24);
-  return `<div class="busca"><input type="text" data-f="busca" value="${esc(busca||'')}" placeholder="Buscar cliente (nome, apelido, cidade)" autocomplete="off"></div>
-  ${l.length?`<div class="escolha cli">${l.map(c=>{const p=pos[c.id];return `<button data-a="cli" data-v="${c.id}" class="${c.id===sel?'sel':''} ${p.vencido>0?'venc':''}">${esc(c.nome)}<small>${c.apelido?esc(c.apelido)+' · ':''}${p.aberto>0.004?(p.vencido>0?'⚠️ ':'')+fmtR(p.aberto):'sem débito'}</small></button>`}).join('')}</div>`:`<div class="vazio">${q?'Nenhum cliente encontrado.':'Nenhum cliente cadastrado.'}</div>`}
-  ${tot>l.length?`<p class="note">Mostrando ${l.length} de ${tot}. Digite para buscar.</p>`:''}
-  <button class="lima" data-a="cliNovo">+ Novo cliente</button>`;
+  const tot=l.length;l=l.slice(0,q?60:200);
+  /* caixa de seleção: digita o nome e a lista vai mostrando os clientes parecidos; toca para escolher */
+  return `<div class="combo cliCombo"><input type="text" data-f="busca" value="${esc(busca||'')}" placeholder="Digite o nome do cliente" autocomplete="off" autocapitalize="characters"><button type="button" class="comboSeta cliSeta" aria-label="Abrir lista">▾</button>
+  <div class="comboLista" ${q?'':'hidden'}>${l.length?l.map(c=>{const p=pos[c.id];return `<button type="button" data-a="cli" data-v="${c.id}" class="${c.id===sel?'sel':''} ${p.vencido>0?'venc':''}">${esc(c.nome)}<small>${[c.apelido,c.cidade].filter(Boolean).map(esc).join(' · ')}${c.apelido||c.cidade?' · ':''}${p.aberto>0.004?(p.vencido>0?'⚠️ vencido ':'')+fmtR(p.aberto):'sem débito'}</small></button>`}).join('')+(tot>l.length?`<div class="note" style="padding:8px 14px">Mostrando ${l.length} de ${tot}. Digite mais letras.</div>`:''):`<div class="note" style="padding:10px 14px">${q?'Nenhum cliente com esse nome.':'Nenhum cliente cadastrado.'}</div>`}</div></div>`;
 }
-function atualizaBusca(el,html){/* redesenha só a grade, mantendo o cursor no campo de busca */
-  const box=el.closest('.cliBox');if(!box)return;const pos=el.selectionStart;box.innerHTML=html;const i=box.querySelector('[data-f=busca]');if(i){i.focus();try{i.setSelectionRange(pos,pos)}catch(e){}}}
+function atualizaBusca(el,html){/* atualiza só a lista, mantendo o cursor no campo */
+  const lista=el.closest('.combo')&&el.closest('.combo').querySelector('.comboLista');if(!lista)return;const t=document.createElement('div');t.innerHTML=html;const n=t.querySelector('.comboLista');lista.innerHTML=n?n.innerHTML:'';lista.hidden=false}
+document.addEventListener('focusin',e=>{const i=e.target;if(i.matches&&i.matches('.cliCombo input')){const l=i.parentNode.querySelector('.comboLista');if(l)l.hidden=false}});
+document.addEventListener('click',e=>{const s=e.target.closest('.cliSeta');if(s){const l=s.parentNode.querySelector('.comboLista');if(l)l.hidden=!l.hidden;return}
+  document.querySelectorAll('.cliCombo .comboLista').forEach(l=>{if(!l.hidden&&!l.parentNode.contains(e.target))l.hidden=true})});
 function formCliente(c,ok){
   const n=!c;c=c||{prazo:cad.params.prazo,cliente:true};
   janela(`<h3>${n?'👤 Novo cliente':'✏️ Editar cliente'}</h3>
@@ -989,19 +993,19 @@ RENDER.vend=()=>{
   const el=$('t-vend'),c=cliPorId(fv.cliId);if(!fv.vencManual)fv.venc=fv.cliId?vencPadrao():'';
   let h=quemHtml()+(fv.editId?`<div class="leitura aviso">✏️ Editando ${esc(numVenda(fv))} — grave para salvar as alterações.</div>`:'');
   h+=`<section class="panel"><h2>Data e despesca</h2>${dataHtml('data',fv.data)}${despHtml(fv.data)}</section>`;
-  h+=`<section class="panel"><h2>Cliente</h2>`;
+  h+=`<section class="panel">${titNovo('Cliente','cliNovo')}`;
   if(c){const p=posicao(c.id);h+=`<div class="resumoSel" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span>👤 ${esc(nomeCli(c))}<br><small style="font-weight:500">Em aberto: <b class="${p.vencido>0?'neg':''}">${fmtR(p.aberto)}</b>${p.vencido>0?` · vencido ${fmtR(p.vencido)}`:''} · prazo ${c.prazo||0} dias</small></span><button class="mini" data-a="cliTroca">Trocar</button></div>`}
   else h+=`<div class="cliBox">${clientesGrade(fv.busca,null)}</div>`;
   h+=`</section>`;
   if(c){
-    h+=`<section class="panel"><h2>Peixes e pesadas</h2>`;
+    h+=`<section class="panel">${titNovo('Peixes e pesadas','itemNovo')}`;
     fv.itens.forEach((i,ix)=>{const neg=c.precos&&c.precos[i.classeId]!=null;h+=`<div class="item ${ix===fv.ia?'atual':''}">
       <div class="itemTopo"><div><b>${esc(i.produto)} — ${esc(i.classe)}</b><small>${neg?'Preço negociado com o cliente: '+fmtR(c.precos[i.classeId]):'Sem preço negociado'+(classePorId(i.classeId)&&classePorId(i.classeId).preco?' · ref. '+fmtR(classePorId(i.classeId).preco):'')}</small></div><button class="mini danger" data-a="itemDel" data-v="${ix}">✕</button></div>
       <div class="precoLinha"><span>R$</span><input type="text" inputmode="decimal" data-f="preco" data-i="${ix}" value="${txtBR(i.preco)}" placeholder="0,00"><span>/kg</span></div>
       ${(i.pesadas||[]).length?`<div class="pesadas">${i.pesadas.map((p,pj)=>`<button data-a="pesEd" data-v="${ix}:${pj}"><i>${pj+1}</i>${fmtKg(p)}</button>`).join('')}</div>`:'<p class="note">Nenhuma pesada ainda.</p>'}
       ${ix===fv.ia?`<div class="pesoLinha"><input type="text" class="big" id="pesoIn" inputmode="decimal" placeholder="Peso (kg)" autocomplete="off" data-enter="pesAdd"><button class="verde" data-a="pesAdd">+ Pesada</button></div>`:`<button data-a="itemSel" data-v="${ix}">⚖️ Lançar pesadas neste item</button>`}
       <div class="subtot"><span id="stq${ix}">${(i.pesadas||[]).length} pesada(s) · ${fmtKg(pesoItem(i))} kg</span><span id="stv${ix}">${fmtR(valorItem(i))}</span></div></div>`});
-    h+=`<button class="lima" data-a="itemNovo">+ Peixe / classificação</button></section>`;
+    h+=`</section>`;
     h+=`<section class="panel"><h2>Pagamento</h2><div class="chips">${CONDICOES.map(x=>`<button data-a="cond" data-v="${x}" class="${fv.cond===x?'sel':''}">${x}</button>`).join('')}</div>
       ${fv.cond!=='A PRAZO'?`<label class="opcao"><input type="checkbox" data-f="recebido" ${fv.recebido?'checked':''}> Já recebido agora (a venda entra quitada)</label>`:''}
       <div class="datas"><div><label>Vencimento</label><input type="date" data-f="venc" value="${fv.venc}"></div><div><label>Nº nota (opcional)</label><input type="text" data-f="nf" value="${esc(fv.nf)}"></div></div>
@@ -1021,7 +1025,7 @@ function updTotVend(){fv.itens.forEach((i,ix)=>{const q=$('stq'+ix),v=$('stv'+ix
   if($('tvP'))$('tvP').textContent=fmtKg(pesoVenda(fv))+' kg';if($('tvV'))$('tvV').textContent=fmtR(valorVenda(fv));rascV()}
 const focaPeso=()=>setTimeout(()=>{const i=$('pesoIn');if(i)i.focus()},30);
 CAMPOS.vend=(f,el,ev)=>{
-  if(f==='busca'){fv.busca=el.value;atualizaBusca(el,clientesGrade(fv.busca,null));return}
+  if(f==='busca'){if(ev!=='input')return;fv.busca=el.value;atualizaBusca(el,clientesGrade(fv.busca,null));return}
   if(f==='data'&&ev==='change'){if(!el.value)return;fv.data=el.value;if(fv.vencManual&&fv.venc<fv.data)fv.venc=fv.data;render();rascV();return}
   if(f==='venc'&&ev==='change'){const ok=!el.value||el.value>=fv.data;fv.venc=ok?el.value:fv.data;fv.vencManual=true;if(!ok)render();rascV();return}
   if(f==='preco'){const i=fv.itens[+el.dataset.i];const n=numBR(el.value);i.preco=isNaN(n)?0:n;updTotVend();return}
@@ -1127,7 +1131,7 @@ let fr=null;
 ENTRAR.rec=()=>{fr={data:chaveDia(),cliId:null,valor:'',forma:'PIX',doc:'',obs:'',busca:''}};
 RENDER.rec=()=>{
   const el=$('t-rec'),c=cliPorId(fr.cliId);let h=quemHtml();
-  h+=`<section class="panel"><h2>Data</h2>${dataHtml('data',fr.data)}</section><section class="panel"><h2>Cliente</h2>`;
+  h+=`<section class="panel"><h2>Data</h2>${dataHtml('data',fr.data)}</section><section class="panel">${titNovo('Cliente','cliNovo')}`;
   if(c){const p=posicao(c.id);h+=`<div class="resumoSel" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span>👤 ${esc(nomeCli(c))}</span><button class="mini" data-a="cliTroca">Trocar</button></div>
     <div class="stat"><div><small>Em aberto</small><b class="num">${fmtR(p.aberto)}</b></div><div><small>Vencido</small><b class="num ${p.vencido>0?'neg':''}">${fmtR(p.vencido)}</b></div></div>
     ${p.abertos.length?`<div class="tabWrap"><table class="tabela"><tr><th>Título</th><th>Venc.</th><th class="r">Aberto</th><th></th></tr>${p.abertos.map(t=>`<tr><td>${t.tipo==='VENDA'?esc(numCurto(t.rec)):'Ajuste'}<br><small>${fmtData(t.data)}</small></td><td>${fmtData(t.venc)}</td><td class="r">${fmtR(t.aberto)}</td><td class="r">${sitTag(t)}</td></tr>`).join('')}</table></div><p class="note">O recebimento quita os títulos mais antigos primeiro.</p>`:'<div class="vazio">Cliente sem débito em aberto.</div>'}`}
@@ -1141,7 +1145,7 @@ RENDER.rec=()=>{
   h+=recentesHtml('receb',r=>`<b>${esc(r.cliente)}</b><span class="litros">${fmtR(r.valor)}</span>`,r=>`${esc(r.forma||'')} · ${fmtData(r.data)}`);
   el.innerHTML=h;
 };
-CAMPOS.rec=(f,el,ev)=>{if(f==='busca'){fr.busca=el.value;atualizaBusca(el,clientesGrade(fr.busca,null,{porSaldo:true}));return}
+CAMPOS.rec=(f,el,ev)=>{if(f==='busca'){if(ev!=='input')return;fr.busca=el.value;atualizaBusca(el,clientesGrade(fr.busca,null,{porSaldo:true}));return}
   if(f==='data'&&ev==='change'){if(el.value){fr.data=el.value;render()}return}
   if(['valor','doc','obs'].includes(f))fr[f]=el.value};
 ACOES.rec={
