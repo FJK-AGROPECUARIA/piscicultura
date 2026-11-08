@@ -76,10 +76,10 @@ RENDER.gcli=()=>{
   if(gc.filtro==='aberto')l=l.filter(c=>pos[c.id].aberto>0.004);if(gc.filtro==='vencido')l=l.filter(c=>pos[c.id].vencido>0.004);
   l.sort((a,b)=>gc.filtro==='todos'?ordTxt(a.nome,b.nome):pos[b.id].aberto-pos[a.id].aberto);
   const tA=r2(l.reduce((s,c)=>s+pos[c.id].aberto,0)),tV=r2(l.reduce((s,c)=>s+pos[c.id].vencido,0));
-  let h=`<section class="panel"><div class="busca"><input type="text" data-f="busca" value="${esc(gc.busca)}" placeholder="Buscar cliente" autocomplete="off"></div>
+  let h=`<section class="panel">${titNovo('Clientes','novo')}<div class="busca"><input type="text" data-f="busca" value="${esc(gc.busca)}" placeholder="Buscar cliente" autocomplete="off"></div>
     <div class="tipoMov">${[['todos','Todos'],['aberto','Em aberto'],['vencido','Vencidos']].map(([k,t])=>`<button data-a="filtro" data-v="${k}" class="${gc.filtro===k?'sel':''}">${t}</button>`).join('')}</div>
     <div class="stat"><div><small>Clientes</small><b class="num">${l.length}</b></div><div><small>Em aberto</small><b class="num">${fmtR(tA).replace('R$ ','')}</b></div><div><small>Vencido</small><b class="num ${tV>0?'neg':''}">${fmtR(tV).replace('R$ ','')}</b></div></div>
-    <div class="row"><button class="lima" data-a="novo">+ Novo cliente</button><button data-ir="gcob">⏰ Cobrança</button></div><div id="cliLista">`;
+    <div id="cliLista">`;
   h+=l.map(c=>{const p=pos[c.id];return `<button class="cliLinha" data-a="abrir" data-v="${c.id}"><div><b>${esc(c.nome)}</b><small>${[c.apelido,c.cidade,c.bairro,c.tel].filter(Boolean).map(esc).join(' · ')||'&nbsp;'}</small></div><div class="val ${p.vencido>0?'neg':''}">${p.aberto>0.004?fmtR(p.aberto):'<small>sem débito</small>'}${p.vencido>0?`<small class="neg">vencido ${fmtR(p.vencido)}</small>`:''}</div></button>`}).join('')||'<div class="vazio">Nenhum cliente.</div>';
   h+=`</div></section>`;$('t-gcli').innerHTML=h;
 };
@@ -110,6 +110,7 @@ RENDER.extr=()=>{
   h+=x.movs.slice().reverse().map(m=>`<button class="reg" data-a="mov" data-v="${m.tipo}:${m.ref}"><div><span class="eqn" style="font-size:1.05rem">${fmtData(m.data)} · ${m.tipo==='VENDA'?'Compra':m.tipo==='PAGAMENTO'?'Pagamento':m.tipo==='DEBITO'?'Débito':'Crédito'}</span><div class="faz">${esc(m.hist)}</div>${m.tipo==='VENDA'?`<div class="faz">${sitTag(x.p.titulos.find(t=>t.ref===m.ref)||{aberto:0})}</div>`:''}</div><div class="lt ${m.credito?'mais':''}">${m.debito?fmtR(m.debito):'− '+fmtR(m.credito)}<small>saldo ${fmtR(m.saldo)}</small></div></button>`).join('')||'<div class="vazio">Sem movimentação no período.</div>';
   h+=`<div class="kv"><div><span>Compras no período</span><b>${fmtR(x.deb)}</b></div><div><span>Pagamentos/créditos no período</span><b class="pos">${fmtR(x.cred)}</b></div>${x.kg?`<div><span>Peso comprado</span><b>${fmtKg(x.kg)} kg</b></div>`:''}<div class="forte"><span>Saldo em aberto</span><b class="${x.p.vencido>0?'neg':''}">${fmtR(x.p.aberto)}</b></div></div></section>`;
   if(Math.abs(x.p.saldo)<0.005)h+=`<button class="inativar" data-a="inativar">Inativar cliente</button>`;
+  h+=`<button class="excluirCli" data-a="excluirCli">🗑 Excluir cliente</button>`;
   $('t-extr').innerHTML=h;
 };
 CAMPOS.extr=(f,el)=>{campoPerDesp(ge,f,el)};
@@ -128,6 +129,7 @@ function relExtrato(c,x){return{titulo:'Extrato do cliente',sub:[c.nome,'Períod
   {kv:[['SALDO EM ABERTO',fmtR(x.p.aberto),null,true],['Vencido',fmtR(x.p.vencido),x.p.vencido>0?'#b3261e':null]]}]}}
 ACOES.extr={per(v){aplicaPer(ge,v);render()},
   editar(){formCliente(cliPorId(extrCli),()=>render())},
+  excluirCli(){excluirCad('clientes',extrCli,()=>ir('gcli'))},
   inativar(){const c=cliPorId(extrCli);perguntar(`Inativar ${c.nome}?`,'Inativar','var(--warn)',()=>{c.inativo=true;toque(c);salvarCad('Cliente inativado');ir('gcli')},'Some das listas; o histórico continua guardado.')},
   wa(){const c=cliPorId(extrCli);compartilharTexto(textoExtrato(c,dadosExtrato(c.id)),c.tel)},
   exp(t){const c=cliPorId(extrCli),x=dadosExtrato(c.id);exportarRel(relExtrato(c,x),t,`Extrato ${c.nome} ${x.rot.replace(/\//g,'-')}`)},
@@ -249,33 +251,40 @@ RENDER.gcust=()=>{
   const f=gk.f,cats=ativos(cad.categorias),l=db.custos.filter(c=>c.despescaId===gk.desp).sort((a,b)=>b.data.localeCompare(a.data));
   const tot=r2(l.reduce((s,c)=>s+Number(c.valor||0),0)),reemb={};l.filter(c=>c.pago==='reembolsar').forEach(c=>reemb[c.quem||'—']=r2((reemb[c.quem||'—']||0)+Number(c.valor)));
   const nomes=[...new Set(db.custos.map(c=>c.quem).filter(Boolean).concat(ativos(cad.vendedores).map(v=>v.nome)))];
-  let h=`<section class="panel"><h2>Despesca</h2>${cad.despescas.length?despSelHtml(gk.desp,false):'<p class="note">A despesca da semana é criada ao gravar o primeiro custo.</p>'}</section>
-   <section class="panel"><h2>Lançar custo</h2>${dataHtml('data',f.data)}
-    <label>Categoria</label><div class="chips">${cats.map(c=>`<button data-a="cat" data-v="${esc(c.nome)}" class="${f.cat===c.nome?'sel':''}">${esc(c.nome)}</button>`).join('')}</div>
+  let h=`<section class="panel"><h2>Despesca</h2>${cad.despescas.length?despSelHtml(gk.desp,false):'<p class="note">A despesca da semana é criada ao gravar a primeira despesa.</p>'}</section>
+   <section class="panel"><h2>Lançar despesa</h2>${dataHtml('data',f.data)}
+    <div><label>Categoria</label><div class="combo"><input type="text" id="cuCat" data-f="catTxt" value="${esc(f.catTxt!=null?f.catTxt:f.cat)}" autocomplete="off" autocapitalize="characters"><button type="button" class="comboSeta" data-a="catAbre" aria-label="Abrir lista">▾</button><div class="comboLista" id="cuLista" hidden></div></div></div>
     ${ehDiaria(f.cat)?`<div class="datas" style="grid-template-columns:1fr 1fr 1fr"><div><label>Diárias</label><input type="text" inputmode="decimal" data-f="nd" value="${esc(f.nd)}"></div><div><label>Pessoas</label><input type="number" inputmode="numeric" data-f="np" value="${esc(f.np)}"></div><div><label>R$ diária</label><input type="text" inputmode="decimal" data-f="vd" value="${esc(f.vd)}"></div></div><div class="resumoSel" id="cuTot">Total: ${fmtR(r2((numBR(f.nd)||0)*(parseInt(f.np)||0)*(numBR(f.vd)||0)))}</div>`
       :`<div><label>Valor (R$)</label><input type="text" class="big" inputmode="decimal" data-f="valor" value="${esc(f.valor)}" placeholder="0,00"></div>`}
-    <div><label>Descrição</label><input type="text" data-f="desc" value="${esc(f.desc)}" placeholder="Ex.: 20 sacos de gelo"></div>
+    <div><label>Descrição</label><input type="text" data-f="desc" value="${esc(f.desc)}"></div>
     <label>Quem pagou</label><div class="tipoMov">${[['fazenda','Fazenda'],['emmaos','Dinheiro em mãos'],['reembolsar','Terceiro (reembolsar)']].map(([k,t])=>`<button data-a="pago" data-v="${k}" class="${f.pago===k?'sel':''}">${t}</button>`).join('')}</div>
     ${f.pago!=='fazenda'?`<div><label>${f.pago==='emmaos'?'Vendedor que pagou (abate no acerto)':'Quem pagou (a reembolsar)'}</label><input type="text" data-f="quem" list="cuNomes" value="${esc(f.quem)}"><datalist id="cuNomes">${nomes.map(n=>`<option value="${esc(n)}">`).join('')}</datalist></div>`:''}
-    <button class="verde" data-a="gravar">✔ GRAVAR CUSTO</button></section>
-   <section class="panel"><h2>Custos da despesca</h2><div class="stat"><div><small>Lançamentos</small><b class="num">${l.length}</b></div><div><small>Custo total</small><b class="num">${fmtR(tot).replace('R$ ','')}</b></div></div>
+    <button class="verde" data-a="gravar">✔ GRAVAR DESPESA</button></section>
+   <section class="panel"><h2>Despesas da despesca</h2><div class="stat"><div><small>Lançamentos</small><b class="num">${l.length}</b></div><div><small>Custo total</small><b class="num">${fmtR(tot).replace('R$ ','')}</b></div></div>
     ${Object.keys(reemb).length?`<div class="kv">${Object.entries(reemb).map(([k,v])=>`<div><span>A reembolsar — ${esc(k)}</span><b class="neg">${fmtR(v)}</b></div>`).join('')}</div>`:''}
-    ${l.map(c=>`<button class="reg" data-a="ed" data-v="${c.id}"><div><span class="eqn">${esc(c.categoria)}</span><div class="faz">${fmtData(c.data)} · ${esc(pagoPorTxt(c))}</div>${c.desc?`<div class="obs">${esc(c.desc)}</div>`:''}</div><div class="lt">${fmtR(c.valor)}</div></button>`).join('')||'<div class="vazio">Nenhum custo lançado.</div>'}</section>`;
+    ${l.map(c=>`<button class="reg" data-a="ed" data-v="${c.id}"><div><span class="eqn">${esc(c.categoria)}</span><div class="faz">${fmtData(c.data)} · ${esc(pagoPorTxt(c))}</div>${c.desc?`<div class="obs">${esc(c.desc)}</div>`:''}</div><div class="lt">${fmtR(c.valor)}</div></button>`).join('')||'<div class="vazio">Nenhuma despesa lançada.</div>'}</section>`;
   $('t-gcust').innerHTML=h;
 };
-CAMPOS.gcust=(f,el,ev)=>{const F=gk.f;if(f==='desp'){gk.desp=el.value;render();return}if(f==='data'){if(ev==='change'&&el.value){F.data=el.value;render()}return}
+/* categoria: toca e escolhe na lista, ou digita e vão aparecendo as que têm o nome parecido */
+function catLista(abrir){const el=$('cuLista'),inp=$('cuCat');if(!el||!inp)return;const q=semAcento(inp.value.trim()),cats=ativos(cad.categorias).map(c=>c.nome).sort(ordTxt);
+  const l=abrir||!q?cats:cats.filter(n=>semAcento(n).includes(q));
+  el.innerHTML=l.map(n=>`<button type="button" data-a="catEsc" data-v="${esc(n)}" class="${n===gk.f.cat?'sel':''}">${esc(n)}</button>`).join('')||'<div class="note" style="padding:10px">Nenhuma categoria com esse nome.</div>';el.hidden=false}
+document.addEventListener('click',e=>{const l=$('cuLista');if(l&&!l.hidden&&!e.target.closest('.combo'))l.hidden=true});
+document.addEventListener('focusin',e=>{if(e.target.id==='cuCat')catLista(true)});
+CAMPOS.gcust=(f,el,ev)=>{const F=gk.f;if(f==='desp'){gk.desp=el.value;render();return}
+  if(f==='catTxt'){if(ev!=='input')return;F.catTxt=el.value;const m=ativos(cad.categorias).find(c=>semAcento(c.nome)===semAcento(el.value.trim()));const antes=F.cat;F.cat=m?m.nome:'';if(ehDiaria(antes)!==ehDiaria(F.cat)){render();const i=$('cuCat');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}}catLista(false);return}if(f==='data'){if(ev==='change'&&el.value){F.data=el.value;render()}return}
   F[f]=el.value;if(['nd','np','vd'].includes(f)&&$('cuTot'))$('cuTot').textContent='Total: '+fmtR(r2((numBR(F.nd)||0)*(parseInt(F.np)||0)*(numBR(F.vd)||0)))};
-ACOES.gcust={cat(v){gk.f.cat=v;render()},pago(v){gk.f.pago=v;if(v==='emmaos'&&!gk.f.quem)gk.f.quem=quem();render()},
-  gravar(){const F=gk.f;if(!F.cat){toast('Escolha a categoria');return}
+ACOES.gcust={cat(v){gk.f.cat=v;gk.f.catTxt=null;render()},catEsc(v){gk.f.cat=v;gk.f.catTxt=null;render()},catAbre(){const l=$('cuLista');if(l&&!l.hidden){l.hidden=true;return}catLista(true)},pago(v){gk.f.pago=v;if(v==='emmaos'&&!gk.f.quem)gk.f.quem=quem();render()},
+  gravar(){const F=gk.f;if(!F.cat){toast('Escolha a categoria na lista');return}
     const di=ehDiaria(F.cat),v=di?r2((numBR(F.nd)||0)*(parseInt(F.np)||0)*(numBR(F.vd)||0)):r2(numBR(F.valor));if(!(v>0)){toast('Informe o valor');return}
     if(F.pago!=='fazenda'&&!F.quem.trim()){toast('Informe quem pagou');return}
     let d=despPorId(gk.desp);if(!d||F.data<d.ini||F.data>d.fim){d=despescaDaData(F.data,true);gk.desp=d.id}
     if(d.encerrada){toast('Despesca encerrada — reabra no Fechamento');return}
     salvarReg('custos',{id:'cu-'+uid(),despescaId:d.id,data:F.data,categoria:F.cat,valor:v,desc:F.desc.trim()||(di?`${F.nd} diária(s) × ${F.np} pessoa(s) × ${fmtR(numBR(F.vd))}`:''),pago:F.pago,quem:F.pago==='fazenda'?'':F.quem.trim(),...(di?{diarias:numBR(F.nd),pessoas:parseInt(F.np),valorDiaria:numBR(F.vd)}:{})},true);
-    gk.f={...custoNovo(),data:F.data,pago:F.pago,quem:F.quem};render();toast('Custo gravado')},
+    gk.f={...custoNovo(),data:F.data,pago:F.pago,quem:F.quem};render();toast('Despesa gravada')},
   ed(id){const c=db.custos.find(x=>x.id===id);if(!c)return;if((despPorId(c.despescaId)||{}).encerrada){toast('Despesca encerrada');return}
     janela(`<h3>✏️ ${esc(c.categoria)}</h3><div class="datas"><div><label>Data</label><input type="date" id="jD" value="${c.data}"></div><div><label>Valor</label><input type="text" id="jV" inputmode="decimal" value="${txtBR(c.valor)}"></div></div>
-      <div><label>Categoria</label><select id="jC">${ativos(cad.categorias).map(x=>`<option ${x.nome===c.categoria?'selected':''}>${esc(x.nome)}</option>`).join('')}</select></div>
+      <div><label>Categoria</label><select id="jC">${ativos(cad.categorias).slice().sort((a,b)=>ordTxt(a.nome,b.nome)).map(x=>`<option ${x.nome===c.categoria?'selected':''}>${esc(x.nome)}</option>`).join('')}</select></div>
       <div><label>Descrição</label><input type="text" id="jS" value="${esc(c.desc||'')}"></div><p class="note">Pago por: ${esc(pagoPorTxt(c))}</p>
       <div class="row"><button class="danger" id="jX">🗑 Excluir</button><button class="primary" id="jO">Salvar</button></div>`,(j,fechar)=>{
       j.querySelector('#jX').onclick=()=>{fechar();confirmarExcluir(`Excluir custo de ${fmtR(c.valor)}?`,()=>{apagarReg('custos',c.id);render()})};
@@ -367,21 +376,39 @@ ACOES.gdoa={pr(v){gd.f.produtoId=v;render()},
 /* =====================================================================
    PEIXES, CLASSIFICAÇÕES, TANQUES E CATEGORIAS DE CUSTO
    ===================================================================== */
-const linhaCad=(o,tipo,extra='')=>`<div class="eqLinha ${o.inativo?'inativo':''}"><span>${esc(o.nome)}${extra}</span>${o.inativo?`<button class="mini" data-a="reat" data-v="${tipo}:${o.id}">Reativar</button>`:`<button class="mini" data-a="ren" data-v="${tipo}:${o.id}">✏️</button><button class="mini inativar" data-a="inat" data-v="${tipo}:${o.id}">Inativar</button>`}</div>`;
+/* título com o botão ＋ Novo do lado (padrão de todos os cadastros) */
+const titNovo=(t,a,v,txt)=>`<div class="curhead"><h2>${t}</h2><button class="novoBt" data-a="${a}"${v?` data-v="${v}"`:''}>＋ ${txt||'Novo'}</button></div>`;
+const linhaCad=(o,tipo,extra='')=>`<div class="eqLinha ${o.inativo?'inativo':''}"><span>${esc(o.nome)}${extra}</span>${o.inativo?`<button class="mini" data-a="reat" data-v="${tipo}:${o.id}">Reativar</button>`:`<button class="mini" data-a="ren" data-v="${tipo}:${o.id}">✏️</button><button class="mini inativar" data-a="inat" data-v="${tipo}:${o.id}">Inativar</button>`}<button class="mini excluirBt" data-a="exc" data-v="${tipo}:${o.id}" aria-label="Excluir">🗑</button></div>`;
+/* quantos lançamentos usam o cadastro (só exclui se não tiver nenhum) */
+function usosCad(tipo,o){const sa=semAcento,n=sa(o.nome),q=(l,f)=>l.filter(f).length;
+  if(tipo==='categorias')return q(db.custos,c=>sa(c.categoria)===n);
+  if(tipo==='tanques')return q(db.bags,b=>sa(b.tanque)===n);
+  if(tipo==='classes')return q(db.vendas,v=>(v.itens||[]).some(i=>i.classeId===o.id));
+  if(tipo==='produtos'){const cls=cad.classes.filter(c=>c.produtoId===o.id).map(c=>c.id);return q(db.vendas,v=>(v.itens||[]).some(i=>cls.includes(i.classeId)||sa(i.produto)===n))+q(db.bags,b=>sa(b.produto)===n)+q(db.doacoes,d=>sa(d.produto)===n)}
+  if(tipo==='vendedores')return q(db.vendas,v=>sa(v.vendedor)===n)+q(db.receb,r=>sa(r.vendedor)===n)+q(db.custos,c=>sa(c.quem)===n)+q(db.repasses,r=>sa(r.vendedor)===n)+q(db.bags,b=>sa(b.lancadoPor)===n);
+  if(tipo==='clientes')return q(db.vendas,v=>v.clienteId===o.id)+q(db.receb,r=>r.clienteId===o.id)+q(db.ajustes,a=>a.clienteId===o.id);
+  return 0}
+const NOME_CAD={categorias:'a categoria',tanques:'o tanque',classes:'a classificação',produtos:'o peixe',vendedores:'o vendedor',clientes:'o cliente'};
+function excluirCad(tipo,id,depois){const o=porId(cad[tipo],id);if(!o)return;const n=usosCad(tipo,o);
+  if(n){janela(`<h3>Não dá para excluir</h3><p class="note">${esc(o.nome)} tem ${n} lançamento${n>1?'s':''}. Só pode excluir cadastro sem lançamento — se não usa mais, use <b>Inativar</b>.</p><div class="row"><button class="primary" id="jOk">Entendi</button></div>`,(j,fechar)=>{j.querySelector('#jOk').onclick=fechar});return}
+  perguntar(`Deseja excluir ${NOME_CAD[tipo]||''} ${o.nome}?`,'Excluir','var(--bad)',()=>{o.excluido=true;o.inativo=true;toque(o);
+    if(tipo==='produtos')cad.classes.filter(c=>c.produtoId===o.id).forEach(c=>{c.excluido=true;c.inativo=true;toque(c)});
+    salvarCad('Excluído');if(depois)depois();else render()},'Não tem nenhum lançamento. Essa ação não pode ser desfeita.')}
 RENDER.gpeix=()=>{
-  let h=`<section class="panel"><h2>Peixes e classificações</h2><p class="note">O preço de referência é sugerido na venda quando o cliente não tem preço negociado.</p>`;
-  cad.produtos.forEach(p=>{h+=`<div class="fzBloco"><div class="fzCab"><b>${esc(p.nome)}${p.inativo?' (inativo)':''}</b><span><button class="az" data-a="ren" data-v="produtos:${p.id}">✏️</button> ${p.inativo?`<button class="az" data-a="reat" data-v="produtos:${p.id}">Reativar</button>`:`<button class="az" data-a="inat" data-v="produtos:${p.id}">Inativar</button>`}</span></div>
-    ${cad.classes.filter(c=>c.produtoId===p.id).map(c=>linhaCad(c,'classes',` <small style="color:var(--muted);font-weight:500">· ref. ${fmtR(c.preco||0)}/kg</small>`)).join('')}
-    <div class="addLinha"><input type="text" placeholder="Nova classificação" id="nc-${p.id}"><button class="lima mini" data-a="addCl" data-v="${p.id}">+</button></div></div>`});
-  h+=`<div class="row"><input type="text" id="novoPeixe" placeholder="Novo peixe (ex.: PIRARUCU)"><button class="lima" data-a="addPeixe" style="flex:0 0 auto">+ Peixe</button></div></section>`;
-  h+=`<section class="panel"><h2>Tanques / viveiros</h2><div class="fzBloco">${cad.tanques.map(t=>linhaCad(t,'tanques')).join('')||'<div class="eqLinha"><span class="note">Nenhum tanque.</span></div>'}<div class="addLinha"><input type="text" id="novoTq" placeholder="Novo tanque"><button class="lima mini" data-a="addTq">+</button></div></div></section>`;
-  h+=`<section class="panel"><h2>Categorias de custo</h2><div class="fzBloco">${cad.categorias.map(t=>linhaCad(t,'categorias')).join('')}<div class="addLinha"><input type="text" id="novaCat" placeholder="Nova categoria"><button class="lima mini" data-a="addCat">+</button></div></div></section>`;
+  let h=`<section class="panel">${titNovo('Peixes e classificações','addPeixe')}<p class="note">O preço de referência é sugerido na venda quando o cliente não tem preço negociado.</p>`;
+  naoExcl(cad.produtos).forEach(p=>{h+=`<div class="fzBloco"><div class="fzCab"><b>${esc(p.nome)}${p.inativo?' (inativo)':''}</b><span>${p.inativo?'':`<button class="az" data-a="addCl" data-v="${p.id}">＋ Classificação</button> `}<button class="az" data-a="ren" data-v="produtos:${p.id}">✏️</button> ${p.inativo?`<button class="az" data-a="reat" data-v="produtos:${p.id}">Reativar</button>`:`<button class="az" data-a="inat" data-v="produtos:${p.id}">Inativar</button>`} <button class="az" data-a="exc" data-v="produtos:${p.id}" aria-label="Excluir">🗑</button></span></div>
+    ${naoExcl(cad.classes).filter(c=>c.produtoId===p.id).map(c=>linhaCad(c,'classes',` <small style="color:var(--muted);font-weight:500">· ref. ${fmtR(c.preco||0)}/kg</small>`)).join('')}</div>`});
+  h+=`</section>`;
+  h+=`<section class="panel">${titNovo('Tanques / viveiros','addTq')}<div class="fzBloco">${naoExcl(cad.tanques).sort((a,b)=>ordTxt(a.nome,b.nome)).map(t=>linhaCad(t,'tanques')).join('')||'<div class="eqLinha"><span class="note">Nenhum tanque.</span></div>'}</div></section>`;
+  h+=`<section class="panel">${titNovo('Categorias de despesa','addCat')}<div class="fzBloco">${naoExcl(cad.categorias).sort((a,b)=>ordTxt(a.nome,b.nome)).map(t=>linhaCad(t,'categorias')).join('')}</div></section>`;
   $('t-gpeix').innerHTML=h;
 };
-const addSimples=(lista,inp,pref,up)=>{const i=$(inp);let n=i.value.trim();if(up)n=n.toUpperCase();if(!n){toast('Digite o nome');return}if(cad[lista].some(x=>!x.inativo&&semAcento(x.nome)===semAcento(n))){toast('Já existe');return}cad[lista].push(toque({id:pref+uid(),nome:n}));salvarCad('Cadastrado');render()};
+const addSimples=(lista,tit,pref,up)=>campoTexto(tit,'',n=>addNome(lista,n,pref,up));
+const addNome=(lista,n,pref,up)=>{n=String(n||'').trim();if(up)n=n.toUpperCase();if(!n){toast('Digite o nome');return}if(cad[lista].some(x=>!x.inativo&&!x.excluido&&semAcento(x.nome)===semAcento(n))){toast('Já existe');return}cad[lista].push(toque({id:pref+uid(),nome:n}));salvarCad('Cadastrado');render()};
 ACOES.gpeix={
-  addPeixe(){addSimples('produtos','novoPeixe','p-',true)},addTq(){addSimples('tanques','novoTq','tq-',true)},addCat(){addSimples('categorias','novaCat','cat-',false)},
-  addCl(pid){const i=$('nc-'+pid),n=i.value.trim();if(!n){toast('Digite a classificação');return}cad.classes.push(toque({id:'c-'+uid(),produtoId:pid,nome:n,preco:0}));salvarCad('Classificação criada');render()},
+  exc(v){const[l,id]=v.split(':');excluirCad(l,id)},
+  addPeixe(){addSimples('produtos','Novo peixe','p-',true)},addTq(){addSimples('tanques','Novo tanque / viveiro','tq-',true)},addCat(){addSimples('categorias','Nova categoria de despesa','cat-',false)},
+  addCl(pid){const p=porId(cad.produtos,pid);campoTexto('Nova classificação'+(p?' — '+p.nome:''),'',n=>{n=String(n||'').trim();if(!n){toast('Digite a classificação');return}if(cad.classes.some(c=>c.produtoId===pid&&!c.inativo&&semAcento(c.nome)===semAcento(n))){toast('Já existe');return}cad.classes.push(toque({id:'c-'+uid(),produtoId:pid,nome:n,preco:0}));salvarCad('Classificação criada');render()})},
   ren(v){const[l,id]=v.split(':'),o=porId(cad[l],id);
     if(l==='classes'){janela(`<h3>✏️ Classificação</h3><div><label>Nome</label><input type="text" id="jN" value="${esc(o.nome)}"></div><div><label>Preço de referência (R$/kg)</label><input type="text" id="jP" inputmode="decimal" value="${txtBR(o.preco)}"></div><div class="row"><button id="jC">Cancelar</button><button class="primary" id="jO">Salvar</button></div>`,(j,fechar)=>{j.querySelector('#jC').onclick=fechar;j.querySelector('#jO').onclick=()=>{const n=j.querySelector('#jN').value.trim();if(!n)return;o.nome=n;o.preco=numBR(j.querySelector('#jP').value)||0;toque(o);salvarCad('Salvo');fechar();render()}});return}
     campoTexto('Renomear',o.nome,n=>{o.nome=l==='categorias'?n:n.toUpperCase();toque(o);salvarCad('Salvo');render()})},
@@ -399,7 +426,7 @@ RENDER.gconf=()=>{const P=cad.params;
     <div><label>Empresa (nas notas)</label><input type="text" id="pEmp" value="${esc(P.empresa)}"></div><div><label>Unidade</label><input type="text" id="pUni" value="${esc(P.unidade)}"></div>
     <div><label>Contato no rodapé (telefone, PIX)</label><input type="text" id="pCont" value="${esc(P.contato||'')}"></div>
     <button class="primary" data-a="salvarP">Salvar parâmetros</button></section>
-   <section class="panel"><h2>Vendedores / quem lança</h2><div class="fzBloco">${cad.vendedores.map(v=>linhaCad(v,'vendedores')).join('')||'<div class="eqLinha"><span class="note">Ninguém ainda.</span></div>'}<div class="addLinha"><input type="text" id="novoVend" placeholder="Nome"><button class="lima mini" data-a="addVend">+</button></div></div></section>
+   <section class="panel">${titNovo('Vendedores / quem lança','addVend')}<div class="fzBloco">${naoExcl(cad.vendedores).sort((a,b)=>ordTxt(a.nome,b.nome)).map(v=>linhaCad(v,'vendedores')).join('')||'<div class="eqLinha"><span class="note">Ninguém ainda.</span></div>'}</div></section>
    <section class="panel"><h2>Despescas</h2><p class="note">Criadas sozinhas por semana (segunda a domingo). Encerre/reabra no Fechamento.</p>${despescasOrd().map(d=>`<div class="eqLinha"><span>${esc(d.descricao)}</span>${d.encerrada?'<span class="estado fechada">encerrada</span>':'<span class="estado aberta">aberta</span>'}<button class="mini" data-a="renD" data-v="${d.id}">✏️</button></div>`).join('')||'<div class="vazio">Nenhuma ainda.</div>'}</section>
    <section class="panel"><h2>Cópia de segurança</h2><p class="note">Tudo fica salvo no aparelho e na planilha do Google. Aqui você baixa uma planilha Excel com todos os lançamentos.</p><button class="verde" data-a="tudo">📊 Exportar tudo (Excel)</button>
     <p class="note">Neste aparelho: ${db.vendas.length} vendas · ${db.receb.length} recebimentos · ${db.bags.length} bags · ${ativos(cad.clientes).length} clientes · ${fila.length} aguardando envio.</p></section>
@@ -410,7 +437,7 @@ RENDER.gconf=()=>{const P=cad.params;
 ACOES.gconf={
   salvarP(){const P=cad.params;P.prazo=Math.max(0,parseInt($('pPrazo').value)||0);P.tolerancia=Math.max(0,parseInt($('pTol').value)||0);P.alerta=$('pAlerta').checked;P.bloquear=$('pBloq').checked;
     P.empresa=$('pEmp').value.trim()||'FJK AGROPECUÁRIA';P.unidade=$('pUni').value.trim()||'Piscicultura';P.contato=$('pCont').value.trim();P.alt=agora();salvarCad('Parâmetros salvos')},
-  addVend(){addSimples('vendedores','novoVend','v-',false)},
+  addVend(){addSimples('vendedores','Novo vendedor','v-',false)},exc(v){const[l,id]=v.split(':');excluirCad(l,id)},
   ren(v){ACOES.gpeix.ren(v)},inat(v){ACOES.gpeix.inat(v)},reat(v){ACOES.gpeix.reat(v)},
   renD(id){const d=despPorId(id);campoTexto('Nome da despesca',d.descricao,n=>{d.descricao=n;toque(d);salvarCad('Salvo');render()})},
   tudo(){compartilharArquivo(xlsxTudo(),`Piscicultura FJK - tudo ${fmtData(chaveDia()).replace(/\//g,'-')}.xlsx`,XT)},
@@ -496,7 +523,7 @@ function relComparativo(){const l=despescasOrd().map(d=>({d,a:apurar(d.id)})).fi
     linhas:l.map(({d,a})=>[d.descricao.replace(/^(\S+) (\d{4}) \| /,'$1/$2 ').replace(/ \((\d\d\/\d\d) a .*\)/,' ($1)'),fmtKg(a.kg),fmtR(a.fat),fmtN2(a.pm),a.prod.kg?fmtP(a.pct):'—',a.custo?fmtN2(a.custoKg):'—',fmtR(a.margem)])}]}}
 function relCustosP(de,ate){const l=db.custos.filter(c=>naFaixa(c.data,de,ate)).sort((a,b)=>a.data.localeCompare(b.data));const tot=r2(l.reduce((s,c)=>s+Number(c.valor||0),0));
   const pc={},re={};l.forEach(c=>{pc[c.categoria]=r2((pc[c.categoria]||0)+Number(c.valor));if(c.pago==='reembolsar')re[c.quem||'—']=r2((re[c.quem||'—']||0)+Number(c.valor))});
-  return{titulo:'Custos',sub:[rotPer(de,ate)],xlsNome:'Custos',blocos:[{kv:[['Lançamentos',String(l.length)],['Custo total',fmtR(tot),null,true]].concat(Object.entries(re).map(([k,v])=>['A reembolsar — '+k,fmtR(v),'#b3261e']))},
+  return{titulo:'Despesas',sub:[rotPer(de,ate)],xlsNome:'Despesas',blocos:[{kv:[['Lançamentos',String(l.length)],['Total de despesas',fmtR(tot),null,true]].concat(Object.entries(re).map(([k,v])=>['A reembolsar — '+k,fmtR(v),'#b3261e']))},
     {tit:'Por categoria',cols:[{t:'Categoria',w:50},{t:'Valor',w:18,al:'r'}],linhas:Object.entries(pc).sort((a,b)=>b[1]-a[1]).map(([k,v])=>[k,fmtR(v)]),total:['TOTAL',fmtR(tot)]},
     {tit:'Lançamentos',cols:[{t:'Data',w:11},{t:'Categoria',w:20},{t:'Descrição',w:30},{t:'Pago por',w:18},{t:'Valor',w:13,al:'r'}],linhas:l.map(c=>[fmtData(c.data),c.categoria,c.desc||'',pagoPorTxt(c),fmtR(c.valor)]),total:['TOTAL','','','',fmtR(tot)]}]}}
 function relAcertoP(de,ate){const s={de:ga.de,ate:ga.ate,vend:ga.vend,per:ga.per};ga.de=de;ga.ate=ate;ga.vend='';const r=relAcerto(acerto());Object.assign(ga,s);return r}
@@ -511,8 +538,8 @@ const RELS=[
   {g:'📦 Despesca e produção',id:'bags',t:'Produção (bags)',d:'bags por tanque, peixe e dia',f:(a,b)=>relBagsP(a,b)},
   {g:'📦 Despesca e produção',id:'doa',t:'Doações',d:'peixe doado por destinatário',f:(a,b)=>relDoaP(a,b)},
   {g:'📦 Despesca e produção',id:'comp',t:'Comparativo entre despescas',d:'kg, preço médio, quebra, custo/kg e margem de cada semana',f:()=>relComparativo()},
-  {g:'💸 Custos e acerto',id:'cus',t:'Custos',d:'por categoria e quem pagou (reembolsos)',f:(a,b)=>relCustosP(a,b)},
-  {g:'💸 Custos e acerto',id:'ace',t:'Acerto com a fazenda',d:'recebido, repassado e valor em mãos',f:(a,b)=>relAcertoP(a,b)},
+  {g:'💸 Despesas e acerto',id:'cus',t:'Despesas',d:'por categoria e quem pagou (reembolsos)',f:(a,b)=>relCustosP(a,b)},
+  {g:'💸 Despesas e acerto',id:'ace',t:'Acerto com a fazenda',d:'recebido, repassado e valor em mãos',f:(a,b)=>relAcertoP(a,b)},
 ];
 const relDe=id=>{const r=RELS.find(x=>x.id===id),p=relPer();return r.f(p.de,p.ate)};
 function relHtml(rel){
@@ -636,6 +663,21 @@ $('btnVoltar').onclick=$('barraVoltar').onclick=e=>{if(e)e.stopPropagation();if(
 $('barra').onclick=e=>{if(e.target.closest('#barraVoltar'))return;if(tela==='gconf'&&gq.sub){gq.sub='';render();return}const c=caminho(tela);if(c.length>1)ir(c[0])};
 
 setInterval(()=>{if(tela==='ver'&&document.visibilityState==='visible')carregar()},30000);
+
+/* =====================================================================
+   DATAS: em todo lugar a data tem ◀ ▶ dos lados (passa 1 dia para trás/frente)
+   e tocar na data abre o calendário para escolher
+   ===================================================================== */
+function poeSetasData(raiz){(raiz||document).querySelectorAll('input[type=date]').forEach(i=>{if(i.closest('.diaNav,.dSetas'))return;
+  const alvo=i.parentNode&&i.parentNode.classList.contains('dataBox')?i.parentNode:i;
+  const w=document.createElement('div');w.className='dSetas';alvo.parentNode.insertBefore(w,alvo);
+  const b=d=>{const x=document.createElement('button');x.type='button';x.className='gSeta';x.dataset.dseta=d;x.textContent=d<0?'◀':'▶';x.setAttribute('aria-label',d<0?'Dia anterior':'Próximo dia');return x};
+  w.append(b(-1),alvo,b(1))})}
+new MutationObserver(ms=>{for(const m of ms)for(const n of m.addedNodes)if(n.nodeType===1&&(n.matches('input[type=date]')||n.querySelector('input[type=date]'))){poeSetasData(n.parentNode||n);}}).observe(document.body,{childList:true,subtree:true});
+poeSetasData();
+document.addEventListener('click',e=>{const b=e.target.closest('[data-dseta]');if(b){e.preventDefault();e.stopPropagation();const i=b.parentNode.querySelector('input[type=date]');const v=i.value||chaveDia();i.value=somaDias(v,Number(b.dataset.dseta));
+    i.dispatchEvent(new Event('input',{bubbles:true}));i.dispatchEvent(new Event('change',{bubbles:true}));return}
+  const i=e.target.closest('input[type=date]');if(i&&i.showPicker){try{i.showPicker()}catch(x){}}},true);
 
 /* ---------- início ---------- */
 marcaAtualizado();marcaQuem();statusNuvem();carregar();
