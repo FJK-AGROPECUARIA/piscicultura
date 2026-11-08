@@ -633,7 +633,7 @@ const _renderConfAntigo=RENDER.gconf;
 RENDER.gconf=()=>{
   const el=$('t-gconf');
   if(!gq.sub){el.innerHTML=`<div class="gCfgTiles">
-    <button data-a="sub" data-v="senha" style="--c:#b3261e"><span class="gIc">🔒</span>Senha</button>
+    <button data-a="sub" data-v="senha" style="--c:#b3261e"><span class="gIc">🔒</span>Senhas</button>
     <button data-a="sub" data-v="venda" style="--c:#1e6fd0"><span class="gIc">🧾</span>Venda e cobrança</button>
     <button data-a="sub" data-v="vend" style="--c:#2e8b3d"><span class="gIc">👤</span>Vendedores</button>
     <button data-a="sub" data-v="desp" style="--c:#0b3a82"><span class="gIc">📦</span>Despescas</button>
@@ -643,9 +643,9 @@ RENDER.gconf=()=>{
   _renderConfAntigo();
   const secs=[...el.querySelectorAll(':scope > section, :scope > details')];
   const mapa={venda:0,vend:1,desp:2,nuvem:[3,4]};
-  if(gq.sub==='senha'){el.innerHTML=`<section class="panel"><h2>Senha da Gestão</h2><p class="note">Por enquanto só a Gestão pede senha (também para liberar venda bloqueada e reabrir despesca). O resto do app abre direto.</p>
-      <div><label>📊 Senha da Gestão</label><input type="text" inputmode="numeric" maxlength="8" id="sn_gest" value="${esc(senhaDe('gest'))}" autocomplete="off"></div>
-      <button class="primary" data-a="salvarSenha">Salvar senha</button></section>`;return}
+  if(gq.sub==='senha'){el.innerHTML=`<section class="panel"><h2>Senhas para abrir</h2><p class="note">Senha de cada botão da tela inicial. Deixe em branco para abrir direto, sem senha. A senha da Gestão também libera venda bloqueada e reabre despesca.</p>
+      ${[['desp','🐟 Despesca'],['vendas','🧾 Vendas'],['rec','💰 Receber'],['ver','📋 Resumo do dia'],['gest','📊 Gestão']].map(([k,t])=>`<div><label>${t}</label><input type="text" inputmode="numeric" maxlength="8" id="sn_${k}" value="${esc(senhaDe(k))}" autocomplete="off" placeholder="sem senha"></div>`).join('')}
+      <button class="primary" data-a="salvarSenha">Salvar senhas</button></section>`;return}
   if(gq.sub==='emp'){const P=cad.params;el.innerHTML=`<section class="panel"><h2>Empresa (nas notas e relatórios)</h2><div><label>Empresa</label><input type="text" id="pEmp" value="${esc(P.empresa)}"></div><div><label>Unidade</label><input type="text" id="pUni" value="${esc(P.unidade)}"></div><div><label>Contato no rodapé (telefone, PIX)</label><input type="text" id="pCont" value="${esc(P.contato||'')}"></div><button class="primary" data-a="salvarEmp">Salvar</button></section>`;return}
   const idx=[].concat(mapa[gq.sub]);
   secs.forEach((s,i)=>{if(!idx.includes(i))s.remove()});
@@ -656,11 +656,12 @@ ACOES.gconf=Object.assign({},_acConf,{
   sub(v){gq.sub=v;render();window.scrollTo(0,0)},
   salvarP(){const P=cad.params;P.prazo=Math.max(0,parseInt($('pPrazo').value)||0);P.tolerancia=Math.max(0,parseInt($('pTol').value)||0);P.alerta=$('pAlerta').checked;P.bloquear=$('pBloq').checked;P.alt=agora();salvarCad('Parâmetros salvos')},
   salvarEmp(){const P=cad.params;P.empresa=$('pEmp').value.trim()||'FJK AGROPECUÁRIA';P.unidade=$('pUni').value.trim()||'Piscicultura';P.contato=$('pCont').value.trim();P.alt=agora();salvarCad('Salvo')},
-  salvarSenha(){const v=$('sn_gest').value.replace(/\D/g,'');cad.params.senhas={gest:v};cad.params.alt=agora();try{localStorage.removeItem('pc_senhaOk_gest')}catch(e){}salvarCad('Senha salva');gq.sub='';render()}});
+  salvarSenha(){const S={};Object.keys(SENHAS_PADRAO).forEach(k=>{S[k]=$('sn_'+k).value.replace(/\D/g,'')});cad.params.senhas=S;cad.params.alt=agora();try{Object.keys(SENHAS_PADRAO).forEach(k=>localStorage.removeItem('pc_senhaOk_'+k))}catch(e){}salvarCad('Senhas salvas');gq.sub='';render()}});
 /* o ❮ e o "voltar" da barra: dentro de um quadro da Config. voltam para os quadros */
 const _paiDe=paiDe;
 $('btnVoltar').onclick=$('barraVoltar').onclick=e=>{if(e)e.stopPropagation();if(tela==='gconf'&&gq.sub){gq.sub='';render();return}ir(paiDe(tela))};
-$('barra').onclick=e=>{if(e.target.closest('#barraVoltar'))return;if(tela==='gconf'&&gq.sub){gq.sub='';render();return}const c=caminho(tela);if(c.length>1)ir(c[0])};
+/* tocar em qualquer lugar da barra volta para o menu anterior */
+$('barra').onclick=e=>{if(e.target.closest('#barraVoltar'))return;if(tela==='gconf'&&gq.sub){gq.sub='';render();return}ir(paiDe(tela))};
 
 setInterval(()=>{if(tela==='ver'&&document.visibilityState==='visible')carregar()},30000);
 

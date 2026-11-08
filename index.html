@@ -421,7 +421,7 @@ body.naInicio .gIniBar{display:none}
    ===================================================================== */
 const PRAZO=5*60*1000; // quem lançou pode editar/excluir por 5 minutos sem senha
 const API_PADRAO='https://script.google.com/macros/s/AKfycbwcOrQCcLUC2FmLZPAGfmJNChxdtbh80tajcaMXLvrJaAqedwJXFuZCsDIaxQl2E67gIw/exec'; // link do Google Script (/exec) — colar aqui depois de publicar o Code.gs
-const VERSAO='7';
+const VERSAO='8';
 const K={cad:'pc_cad',db:'pc_db',fila:'pc_fila',pend:'pc_pend',api:'pc_api',disp:'pc_disp',quem:'pc_quem',rascV:'pc_rascV',sync:'pc_sync',gest:'pc_gestOk'};
 const TABS=['vendas','receb','ajustes','bags','doacoes','custos','repasses'];
 const CATS=['Ração','Oxigênio / Aeração','Combustível / Transporte','Gelo','Mão de obra (fixa)','Mão de obra (diárias)','Insumos veterinários','Energia elétrica','Manutenção / Equipamentos','Alimentação','Hospedagem','Despesas administrativas','Investimentos','Outros'];
@@ -563,11 +563,11 @@ function sitVenda(v){const t=titulos(v.clienteId).find(x=>x.ref===v.id);return t
 /* ---------- Senhas (igual ao Gestão de Tratos) ----------
    cada botão da tela inicial tem a sua senha e editar/excluir tem outra.
    Ficam em Gestão › Config. › Senhas (vazia = não pede). */
-const SENHAS_PADRAO={gest:'0000'};
+const SENHAS_PADRAO={desp:'',vendas:'',rec:'',ver:'',gest:'0000'};
 let cadLiberado=false;
 const turnoAtual=()=>chaveDia()+(new Date().getHours()<12?'M':'T');
-/* por enquanto só a Gestão pede senha */
-function senhaDe(m){if(m!=='gest')return '';const x=cad&&cad.params&&cad.params.senhas;return x&&typeof x.gest==='string'?x.gest:SENHAS_PADRAO.gest}
+/* senha de cada botão da tela inicial (em branco = abre direto); editar/excluir não pede */
+function senhaDe(m){if(!(m in SENHAS_PADRAO))return '';const x=cad&&cad.params&&cad.params.senhas;return x&&typeof x[m]==='string'?x[m]:SENHAS_PADRAO[m]}
 const senhaPorTurno=()=>!!(cad&&cad.params&&cad.params.senhaTurno);
 function turnoOk(m){try{return senhaPorTurno()&&localStorage.getItem('pc_senhaOk_'+m)===turnoAtual()}catch(e){return false}}
 function marcaTurno(m){try{localStorage.setItem('pc_senhaOk_'+m,turnoAtual())}catch(e){}}
@@ -894,8 +894,8 @@ function render(){if(RENDER[tela])RENDER[tela]();statusNuvem()}
 const ocupado=()=>FORMS.concat(['gcust','gacer','gpeix','gconf']).includes(tela)||['INPUT','TEXTAREA','SELECT'].includes((document.activeElement||{}).tagName);
 /* tela inicial: cada botão com a sua senha */
 async function entrar(m){
-  if(m==='ver'||m==='vendas'){ir(m);return}
-  if(['vend','rec','desp'].includes(m)){if(!quem()){escolherQuem(()=>ir(m));return}ir(m);return}
+  const TIT={desp:'Despesca',vendas:'Vendas',rec:'Receber',ver:'Resumo do dia'};
+  if(TIT[m]){if(!await pedirSenhaTec('Senha — '+TIT[m],m))return;if(['rec','desp'].includes(m)&&!quem()){escolherQuem(()=>ir(m));return}ir(m);return}
   if(m==='gest'){if(await pedirSenhaTec('Senha da Gestão','gest')){cadLiberado=true;ir('gest')}return}
 }
 document.querySelectorAll('[data-modo]').forEach(b=>b.onclick=()=>entrar(b.dataset.modo));
