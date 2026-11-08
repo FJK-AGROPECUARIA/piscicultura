@@ -58,12 +58,12 @@ CAMPOS.gvend=(f,el)=>{if(campoPerDesp(gv,f,el))return;if(f==='cli'){gv.cli=el.va
 ACOES.gvend={per(v){aplicaPer(gv,v);render()},ver(id){const v=db.vendas.find(x=>x.id===id);if(v)detalheVenda(v)},
   exp(t){const l=vendasFiltro().slice().reverse(),kg=r3(l.reduce((s,v)=>s+pesoVenda(v),0)),rs=r2(l.reduce((s,v)=>s+valorVenda(v),0));
     const sub=[gv.desp?(despPorId(gv.desp)||{}).descricao:descPer(gv)].concat(gv.cli?[(cliPorId(gv.cli)||{}).nome||'']:[]);
-    const pc=agrupaItens(l,(v,i)=>i.produto+' — '+i.classe),pcl=agrupaItens(l,v=>v.cliente);
+    const pc=agrupaItens(l,(v,i)=>i.produto),pcl=agrupaItens(l,v=>v.cliente);
     exportarRel({titulo:'Relatório de vendas',sub,xlsNome:'Vendas',blocos:[
       {kv:[['Vendas',String(l.length)],['Peso vendido',fmtKg(kg)+' kg'],['Faturamento',fmtR(rs),null,true],['Preço médio',kg?fmtR(rs/kg)+'/kg':'—']]},
-      {tit:'Por classificação',cols:[{t:'Peixe / classificação',w:40},{t:'Kg',w:14,al:'r'},{t:'Valor',w:16,al:'r'},{t:'R$/kg',w:12,al:'r'}],linhas:pc.map(g=>[g.k,fmtKg(g.kg),fmtR(g.r),fmtR(g.kg?g.r/g.kg:0)]),total:['TOTAL',fmtKg(kg),fmtR(rs),fmtR(kg?rs/kg:0)]},
+      {tit:'Por peixe',cols:[{t:'Peixe',w:40},{t:'Kg',w:14,al:'r'},{t:'Valor',w:16,al:'r'},{t:'R$/kg',w:12,al:'r'}],linhas:pc.map(g=>[g.k,fmtKg(g.kg),fmtR(g.r),fmtR(g.kg?g.r/g.kg:0)]),total:['TOTAL',fmtKg(kg),fmtR(rs),fmtR(kg?rs/kg:0)]},
       {tit:'Por cliente',cols:[{t:'Cliente',w:40},{t:'Vendas',w:10,al:'r'},{t:'Kg',w:14,al:'r'},{t:'Valor',w:16,al:'r'}],linhas:pcl.map(g=>[g.k,String(g.n.size),fmtKg(g.kg),fmtR(g.r)]),total:['TOTAL',String(l.length),fmtKg(kg),fmtR(rs)]},
-      {tit:'Vendas',cols:[{t:'Data',w:11},{t:'Nº',w:7},{t:'Cliente',w:26},{t:'Itens',w:30},{t:'Kg',w:11,al:'r'},{t:'Valor',w:14,al:'r'}],linhas:l.map(v=>[fmtData(v.data),v.num?String(v.num).padStart(4,'0'):'—',v.cliente,(v.itens||[]).map(i=>i.classe).join(', '),fmtKg(pesoVenda(v)),fmtR(valorVenda(v))]),total:['TOTAL','','','',fmtKg(kg),fmtR(rs)]},
+      {tit:'Vendas',cols:[{t:'Data',w:11},{t:'Nº',w:7},{t:'Cliente',w:26},{t:'Itens',w:30},{t:'Kg',w:11,al:'r'},{t:'Valor',w:14,al:'r'}],linhas:l.map(v=>[fmtData(v.data),v.num?String(v.num).padStart(4,'0'):'—',v.cliente,[...new Set((v.itens||[]).map(i=>i.produto))].join(', '),fmtKg(pesoVenda(v)),fmtR(valorVenda(v))]),total:['TOTAL','','','',fmtKg(kg),fmtR(rs)]},
     ]},t,'Vendas '+sub[0].replace(/\//g,'-'))}};
 
 /* =====================================================================
@@ -196,7 +196,7 @@ function apurar(did){
   const custo=r2(cus.reduce((s,x)=>s+Number(x.valor||0),0)),baseC=Number(d&&d.pesoCusto)||kg||prod.kg,margem=r2(fat-custo);
   let aberto=0;const tits={};vs.forEach(v=>{if(!tits[v.clienteId])tits[v.clienteId]=titulos(v.clienteId);const t=tits[v.clienteId].find(x=>x.ref===v.id);if(t)aberto=r2(aberto+t.aberto)});
   return{d,vs,bags,doa,cus,kg,fat,pm,prod,doado,dif,pct:base?r2(dif/base*100):0,valDif:r2(dif*pm),quebra:classificarQuebra(dif,base),custo,custoKg:baseC?r2(custo/baseC):0,margem,margemKg:baseC?r2(margem/baseC):0,aberto,recebido:r2(fat-aberto),
-    porClasse:agrupaItens(vs,(v,i)=>i.produto+' — '+i.classe),porCli:agrupaItens(vs,v=>v.cliente),
+    porClasse:agrupaItens(vs,(v,i)=>i.produto),porCli:agrupaItens(vs,v=>v.cliente),
     porTanque:Object.values(bags.reduce((o,b)=>{const k=b.tanque+' · '+b.produto;(o[k]=o[k]||{k,l:[]}).l.push(b);return o},{})).map(g=>({k:g.k,...resumoBags(g.l)})).sort((a,b)=>b.kg-a.kg),
     porCat:Object.values(cus.reduce((o,c)=>{(o[c.categoria]=o[c.categoria]||{k:c.categoria,v:0}).v=r2(o[c.categoria].v+Number(c.valor||0));return o},{})).sort((a,b)=>b.v-a.v)};
 }
@@ -209,7 +209,7 @@ RENDER.gfech=()=>{
     <div class="compart"><button class="verde" data-a="exp" data-v="img">🖼 Foto</button><button class="verde" data-a="exp" data-v="pdf">📄 PDF</button><button class="verde" data-a="exp" data-v="xls">📊 Excel</button></div></section>
     <section class="panel"><h2>Vendas</h2><div class="stat"><div><small>Kg vendidos</small><b class="num">${fmtKg(a.kg)}</b></div><div><small>Faturamento</small><b class="num">${fmtR(a.fat).replace('R$ ','')}</b></div><div><small>R$/kg médio</small><b class="num">${fmtN2(a.pm)}</b></div></div>
     <div class="kv"><div><span>Vendas / clientes</span><b>${a.vs.length} / ${a.porCli.length}</b></div><div><span>Já recebido</span><b class="pos">${fmtR(a.recebido)}</b></div><div><span>A receber</span><b class="${a.aberto>0?'neg':''}">${fmtR(a.aberto)}</b></div></div>
-    ${tabHtml(['Classificação','Kg','R$','R$/kg'],a.porClasse.map(g=>[g.k,fmtKg(g.kg),fmtR(g.r),fmtN2(g.kg?g.r/g.kg:0)]))}
+    ${tabHtml(['Peixe','Kg','R$','R$/kg'],a.porClasse.map(g=>[g.k,fmtKg(g.kg),fmtR(g.r),fmtN2(g.kg?g.r/g.kg:0)]))}
     ${tabHtml(['Cliente','Kg','R$'],a.porCli.map(g=>[g.k,fmtKg(g.kg),fmtR(g.r)]))}</section>
     <section class="panel"><h2>Produção × vendas (quebra)</h2><div class="kv"><div><span>Despescado (bags)</span><b>${fmtKg(a.prod.kg)} kg · ${a.prod.n} bags</b></div>${a.prod.q?`<div><span>Peixes · peso médio</span><b>${fmtI(a.prod.q)} · ${fmtKg(a.prod.med)} kg</b></div>`:''}<div><span>Vendido</span><b>${fmtKg(a.kg)} kg</b></div><div><span>Doado</span><b>${fmtKg(a.doado)} kg</b></div>
       <div class="forte"><span>Diferença</span><b class="${a.dif>0?'neg':''}">${fmtKg(a.dif)} kg · ${fmtP(a.pct)}</b></div><div><span>Valor da diferença</span><b>${fmtR(a.valDif)}</b></div></div>
@@ -224,7 +224,7 @@ RENDER.gfech=()=>{
 function tabHtml(cab,linhas){if(!linhas.length)return'';return `<div class="tabWrap"><table class="tabela"><tr>${cab.map((c,i)=>`<th class="${i?'r':''}">${esc(c)}</th>`).join('')}</tr>${linhas.map(l=>`<tr>${l.map((c,i)=>`<td class="${i?'r':''}">${esc(c)}</td>`).join('')}</tr>`).join('')}</table></div>`}
 function relFech(a){const d=a.d;return{titulo:'Fechamento da despesca',sub:[d.descricao,d.encerrada?'Despesca encerrada':'Despesca aberta (parcial)'],xlsNome:'Fechamento',blocos:[
   {tit:'Resumo executivo',kv:[['Peso vendido',fmtKg(a.kg)+' kg'],['Faturamento',fmtR(a.fat),null,true],['Preço médio ponderado',fmtR(a.pm)+'/kg'],['Vendas / clientes',`${a.vs.length} / ${a.porCli.length}`],['Já recebido',fmtR(a.recebido)],['A receber',fmtR(a.aberto),a.aberto>0?'#b3261e':null]]},
-  {tit:'Vendas por classificação',cols:[{t:'Peixe / classificação',w:40},{t:'Kg',w:14,al:'r'},{t:'Valor',w:16,al:'r'},{t:'R$/kg',w:12,al:'r'}],linhas:a.porClasse.map(g=>[g.k,fmtKg(g.kg),fmtR(g.r),fmtR(g.kg?g.r/g.kg:0)]),total:['TOTAL',fmtKg(a.kg),fmtR(a.fat),fmtR(a.pm)]},
+  {tit:'Vendas por peixe',cols:[{t:'Peixe',w:40},{t:'Kg',w:14,al:'r'},{t:'Valor',w:16,al:'r'},{t:'R$/kg',w:12,al:'r'}],linhas:a.porClasse.map(g=>[g.k,fmtKg(g.kg),fmtR(g.r),fmtR(g.kg?g.r/g.kg:0)]),total:['TOTAL',fmtKg(a.kg),fmtR(a.fat),fmtR(a.pm)]},
   {tit:'Vendas por cliente',cols:[{t:'Cliente',w:44},{t:'Kg',w:14,al:'r'},{t:'Valor',w:16,al:'r'}],linhas:a.porCli.map(g=>[g.k,fmtKg(g.kg),fmtR(g.r)]),total:['TOTAL',fmtKg(a.kg),fmtR(a.fat)]},
   {tit:'Produção × vendas',kv:[['Despescado na fazenda',`${fmtKg(a.prod.kg)} kg (${a.prod.n} bags)`],['Vendido',fmtKg(a.kg)+' kg'],['Doado',fmtKg(a.doado)+' kg'],['Diferença',`${fmtKg(a.dif)} kg (${fmtP(a.pct)})`,a.dif>0?'#b3261e':null,true],['Valor da diferença',fmtR(a.valDif)],['Leitura',a.quebra[0]]]},
   {tit:'Produção por tanque',cols:[{t:'Tanque · peixe',w:40},{t:'Bags',w:10,al:'r'},{t:'Kg',w:14,al:'r'},{t:'Peixes',w:12,al:'r'}],linhas:a.porTanque.map(g=>[g.k,String(g.n),fmtKg(g.kg),g.q?fmtI(g.q):'']),total:['TOTAL',String(a.prod.n),fmtKg(a.prod.kg),a.prod.q?fmtI(a.prod.q):'']},
@@ -484,8 +484,8 @@ function relVendasP(de,ate,parte){
   const kg=r3(l.reduce((s,v)=>s+pesoVenda(v),0)),rs=r2(l.reduce((s,v)=>s+valorVenda(v),0)),sub=rotPer(de,ate);
   const resumo={kv:[['Vendas',String(l.length)],['Peso vendido',fmtKg(kg)+' kg'],['Faturamento',fmtR(rs),null,true],['Preço médio',kg?fmtR(rs/kg)+'/kg':'—']]};
   if(parte==='cli'){const g=agrupaItens(l,v=>v.cliente);return{titulo:'Vendas por cliente',sub:[sub],xlsNome:'Por cliente',blocos:[resumo,{cols:[{t:'Cliente',w:40},{t:'Vendas',w:10,al:'r'},{t:'Kg',w:14,al:'r'},{t:'Valor',w:16,al:'r'},{t:'R$/kg',w:12,al:'r'}],linhas:g.map(x=>[x.k,String(x.n.size),fmtKg(x.kg),fmtR(x.r),fmtN2(x.kg?x.r/x.kg:0)]),total:['TOTAL',String(l.length),fmtKg(kg),fmtR(rs),fmtN2(kg?rs/kg:0)]}]}}
-  if(parte==='cls'){const g=agrupaItens(l,(v,i)=>i.produto+' — '+i.classe);return{titulo:'Vendas por classificação',sub:[sub],xlsNome:'Por classificação',blocos:[resumo,{cols:[{t:'Peixe / classificação',w:40},{t:'Kg',w:14,al:'r'},{t:'Valor',w:16,al:'r'},{t:'R$/kg',w:12,al:'r'}],linhas:g.map(x=>[x.k,fmtKg(x.kg),fmtR(x.r),fmtN2(x.kg?x.r/x.kg:0)]),total:['TOTAL',fmtKg(kg),fmtR(rs),fmtN2(kg?rs/kg:0)]}]}}
-  return{titulo:'Vendas',sub:[sub],xlsNome:'Vendas',blocos:[resumo,{cols:[{t:'Data',w:11},{t:'Nº',w:7},{t:'Cliente',w:24},{t:'Itens',w:28},{t:'Kg',w:11,al:'r'},{t:'Valor',w:14,al:'r'},{t:'Cond.',w:10}],linhas:l.map(v=>[fmtData(v.data),v.num?String(v.num).padStart(4,'0'):'—',v.cliente,(v.itens||[]).map(i=>i.classe).join(', '),fmtKg(pesoVenda(v)),fmtR(valorVenda(v)),v.cond||'']),total:['TOTAL','','','',fmtKg(kg),fmtR(rs),'']}]};
+  if(parte==='cls'){const g=agrupaItens(l,(v,i)=>i.produto);return{titulo:'Vendas por peixe',sub:[sub],xlsNome:'Por peixe',blocos:[resumo,{cols:[{t:'Peixe',w:40},{t:'Kg',w:14,al:'r'},{t:'Valor',w:16,al:'r'},{t:'R$/kg',w:12,al:'r'}],linhas:g.map(x=>[x.k,fmtKg(x.kg),fmtR(x.r),fmtN2(x.kg?x.r/x.kg:0)]),total:['TOTAL',fmtKg(kg),fmtR(rs),fmtN2(kg?rs/kg:0)]}]}}
+  return{titulo:'Vendas',sub:[sub],xlsNome:'Vendas',blocos:[resumo,{cols:[{t:'Data',w:11},{t:'Nº',w:7},{t:'Cliente',w:24},{t:'Itens',w:28},{t:'Kg',w:11,al:'r'},{t:'Valor',w:14,al:'r'},{t:'Cond.',w:10}],linhas:l.map(v=>[fmtData(v.data),v.num?String(v.num).padStart(4,'0'):'—',v.cliente,[...new Set((v.itens||[]).map(i=>i.produto))].join(', '),fmtKg(pesoVenda(v)),fmtR(valorVenda(v)),v.cond||'']),total:['TOTAL','','','',fmtKg(kg),fmtR(rs),'']}]};
 }
 /* descontos dados no recebimento: os ligados a um recebimento ficam nele; os lançados sem valor aparecem sozinhos */
 const descSoltos=(de,ate,cli)=>db.ajustes.filter(a=>a.tipo==='C'&&/^Desconto no recebimento/.test(a.desc||'')&&naFaixa(a.data,de,ate)&&(!cli||a.clienteId===cli)&&!db.receb.some(r=>r.ajusteId===a.id));
@@ -535,7 +535,7 @@ function relAcertoP(de,ate){const s={de:ga.de,ate:ga.ate,vend:ga.vend,per:ga.per
 const RELS=[
   {g:'🐟 Vendas',id:'vend',t:'Vendas',d:'cada venda com cliente, peso, valor e condição',f:(a,b)=>relVendasP(a,b)},
   {g:'🐟 Vendas',id:'vcli',t:'Vendas por cliente',d:'kg, valor e preço médio de cada cliente',f:(a,b)=>relVendasP(a,b,'cli')},
-  {g:'🐟 Vendas',id:'vcls',t:'Vendas por classificação',d:'kg, valor e preço médio por peixe e classificação',f:(a,b)=>relVendasP(a,b,'cls')},
+  {g:'🐟 Vendas',id:'vcls',t:'Vendas por peixe',d:'kg, valor e preço médio de cada peixe',f:(a,b)=>relVendasP(a,b,'cls')},
   {g:'💰 Recebimentos e cobrança',id:'rec',t:'Recebimentos',d:'o que entrou, por forma de pagamento',f:(a,b)=>relRecebP(a,b)},
   {g:'💰 Recebimentos e cobrança',id:'cob',t:'Cobrança',d:'títulos vencidos por cliente e faixa de atraso (posição de hoje)',f:()=>relCobranca()},
   {g:'💰 Recebimentos e cobrança',id:'sal',t:'Posição dos clientes',d:'saldo em aberto e vencido de cada cliente (hoje)',f:()=>relSaldos()},

@@ -445,7 +445,7 @@ body.naInicio .gIniBar{display:none}
    ===================================================================== */
 const PRAZO=5*60*1000; // quem lançou pode editar/excluir por 5 minutos sem senha
 const API_PADRAO='https://script.google.com/macros/s/AKfycbwcOrQCcLUC2FmLZPAGfmJNChxdtbh80tajcaMXLvrJaAqedwJXFuZCsDIaxQl2E67gIw/exec'; // link do Google Script (/exec) — colar aqui depois de publicar o Code.gs
-const VERSAO='20';
+const VERSAO='21';
 const K={cad:'pc_cad',db:'pc_db',fila:'pc_fila',pend:'pc_pend',api:'pc_api',disp:'pc_disp',quem:'pc_quem',rascV:'pc_rascV',sync:'pc_sync',gest:'pc_gestOk'};
 const TABS=['vendas','receb','ajustes','bags','doacoes','custos','repasses'];
 const CATS=['Ração','Oxigênio / Aeração','Combustível / Transporte','Gelo','Mão de obra (fixa)','Mão de obra (diárias)','Insumos veterinários','Energia elétrica','Manutenção / Equipamentos','Alimentação','Hospedagem','Despesas administrativas','Investimentos','Outros'];
@@ -548,7 +548,7 @@ const pesoVenda=v=>r3((v.itens||[]).reduce((s,i)=>s+pesoItem(i),0));
 const valorVenda=v=>r2((v.itens||[]).reduce((s,i)=>s+valorItem(i),0));
 const numVenda=v=>v.num?'Título '+String(v.num).padStart(4,'0'):'Título (aguardando nº)';
 const numCurto=v=>v.num?'Nº '+String(v.num).padStart(4,'0'):'s/ nº';
-const descItens=v=>(v.itens||[]).map(i=>`${i.produto} ${i.classe} — ${fmtKg(pesoItem(i))} kg × ${fmtR(i.preco)}`).join('; ');
+const descItens=v=>(v.itens||[]).map(i=>`${i.produto} — ${fmtKg(pesoItem(i))} kg × ${fmtR(i.preco)}`).join('; ');
 
 function movimentos(cliId){
   const m=[];
@@ -1155,7 +1155,7 @@ RENDER.rec=()=>{
   h+=`<section class="panel"><h2>Data</h2>${dataHtml('data',fr.data,'')}</section><section class="panel">${titNovo('Cliente','cliNovo')}`;
   if(c){const p=posicao(c.id);h+=`<div class="resumoSel" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span>👤 ${esc(nomeCli(c))}</span><button class="mini" data-a="cliTroca">Trocar</button></div>
     <div class="stat"><div><small>Em aberto</small><b class="num">${fmtR(p.aberto)}</b></div><div><small>Vencido</small><b class="num ${p.vencido>0?'neg':''}">${fmtR(p.vencido)}</b></div></div>
-    ${p.abertos.length?`<div class="tabWrap"><table class="tabela"><tr><th>Título</th><th>Venc.</th><th class="r">Aberto</th><th></th></tr>${p.abertos.map(t=>`<tr><td>${t.tipo==='VENDA'?esc(numCurto(t.rec)):'Ajuste'}<br><small>${fmtData(t.data)}</small></td><td>${fmtData(t.venc)}</td><td class="r">${fmtR(t.aberto)}</td><td class="r">${sitTag(t)}</td></tr>`).join('')}</table></div><p class="note">O recebimento quita os títulos mais antigos primeiro.</p>`:'<div class="vazio">Cliente sem débito em aberto.</div>'}`}
+    ${p.abertos.length?`<div class="tabWrap"><table class="tabela"><tr><th>Título</th><th>Venc.</th><th class="r">Aberto</th><th></th></tr>${p.abertos.map(t=>`<tr${fr.vendaId===t.ref?' style="background:#e3eefb"':''}><td>${t.tipo==='VENDA'?esc(numCurto(t.rec)):'Ajuste'}<br><small>${fmtData(t.data)}</small></td><td>${fmtData(t.venc)}</td><td class="r">${fmtR(t.aberto)}</td><td class="r">${sitTag(t)}${t.tipo==='VENDA'?`<br><button class="mini${fr.vendaId===t.ref?' sel':''}" data-a="tit" data-v="${t.ref}" style="margin-top:4px">${fr.vendaId===t.ref?'✓ Este título':'Pagar este'}</button>`:''}</td></tr>`).join('')}</table></div><p class="note">${fr.vendaId?'O valor vai para o título escolhido (o que sobrar quita os mais antigos).':'Toque em <b>Pagar este</b> para escolher o título. Sem escolher, o recebimento quita os títulos mais antigos primeiro.'}</p>`:'<div class="vazio">Cliente sem débito em aberto.</div>'}`}
   else h+=`<div class="cliBox">${clientesGrade(fr.busca,null,{porSaldo:true})}</div>`;
   h+=`</section>`;
   if(c){const p=posicao(c.id);h+=`<section class="panel"><h2>Valor recebido</h2><input type="text" class="big" data-f="valor" inputmode="decimal" value="${esc(fr.valor)}" placeholder="R$ 0,00">
@@ -1172,14 +1172,15 @@ CAMPOS.rec=(f,el,ev)=>{if(f==='busca'){if(ev!=='input')return;fr.busca=el.value;
   if(f==='data'&&ev==='change'){if(el.value){fr.data=el.value;render()}return}
   if(['valor','desc','doc','obs'].includes(f))fr[f]=el.value};
 ACOES.rec={
-  cli(id){fr.cliId=id;fr.busca='';render()},cliTroca(){fr.cliId=null;fr.valor='';render()},
+  cli(id){fr.cliId=id;fr.busca='';render()},cliTroca(){fr.cliId=null;fr.valor='';fr.vendaId=null;render()},
   cliNovo(){formCliente(null,c=>{fr.cliId=c.id;render()})},
+  tit(id){if(fr.vendaId===id){fr.vendaId=null;render();return}fr.vendaId=id;const t=posicao(fr.cliId).abertos.find(x=>x.ref===id);if(t)fr.valor=txtBR(Math.max(0,r2(t.aberto-(r2(numBR(fr.desc))||0))));render()},
   tudo(){fr.valor=txtBR(Math.max(0,r2(posicao(fr.cliId).aberto-(r2(numBR(fr.desc))||0))));render()},
   forma(v){fr.forma=v;render()},
   cancelar(){avisoCancelar('Cancelar este recebimento?',()=>ir('inicio'))},
   gravar(){const c=cliPorId(fr.cliId),v=r2(numBR(fr.valor))||0,dsc=r2(numBR(fr.desc))||0;if(!c){toast('Escolha o cliente');return}if(!(v>0)&&!(dsc>0)){toast('Informe o valor');return}if(v<0||dsc<0){toast('Valor inválido');return}
-    const p=posicao(c.id);const vai=()=>{const r={id:'rc-'+uid(),data:fr.data,clienteId:c.id,cliente:c.nome,valor:v,forma:fr.forma,doc:fr.doc.trim(),obs:fr.obs.trim(),vendedor:quem()};
-      if(dsc>0){const aj={id:'aj-'+uid(),clienteId:c.id,cliente:c.nome,tipo:'C',data:fr.data,valor:dsc,desc:'Desconto no recebimento'+(fr.obs.trim()?' — '+fr.obs.trim():''),vendedor:quem()};salvarReg('ajustes',aj,true);r.desconto=dsc;r.ajusteId=aj.id}
+    const p=posicao(c.id);const vai=()=>{const r={id:'rc-'+uid(),data:fr.data,clienteId:c.id,cliente:c.nome,valor:v,forma:fr.forma,doc:fr.doc.trim(),obs:fr.obs.trim(),vendedor:quem()};if(fr.vendaId)r.vendaId=fr.vendaId;
+      if(dsc>0){const aj={id:'aj-'+uid(),clienteId:c.id,cliente:c.nome,tipo:'C',data:fr.data,valor:dsc,desc:'Desconto no recebimento'+(fr.obs.trim()?' — '+fr.obs.trim():''),vendedor:quem()};if(fr.vendaId)aj.vendaId=fr.vendaId;salvarReg('ajustes',aj,true);r.desconto=dsc;r.ajusteId=aj.id}
       if(v>0)salvarReg('receb',r,true);ENTRAR.rec();render();window.scrollTo(0,0);
       const sal=posicao(c.id).aberto;janela(`<h3>✅ Recebimento gravado</h3><div class="kv"><div><span>Cliente</span><b>${esc(c.nome)}</b></div><div class="forte"><span>Recebido</span><b>${fmtR(v)}</b></div>${dsc>0?`<div><span>Desconto</span><b>${fmtR(dsc)}</b></div>`:''}<div><span>Saldo em aberto agora</span><b>${fmtR(sal)}</b></div></div>
         ${v>0?'<button class="verde" id="jW">🖼 Recibo em foto</button>':''}<button class="primary" id="jF">OK</button>`,(j,fechar)=>{if(v>0)j.querySelector('#jW').onclick=()=>exportarRel(relRecibo(r),'img',`Recibo ${r.cliente} ${fmtData(r.data).replace(/\//g,'-')}`);j.querySelector('#jF').onclick=fechar})};
@@ -1193,13 +1194,14 @@ function textoRecibo(r){const P=cad.params;const sal=posicao(r.clienteId).aberto
 function editarReceb(r){
   const ed=()=>janela(`<h3>✏️ Recebimento — ${esc(r.cliente)}</h3><div><label>Data</label><input type="date" id="jD" value="${r.data}"></div><div><label>Valor</label><input type="text" class="big" id="jV" inputmode="decimal" value="${txtBR(r.valor)}"></div>
     <div><label>Desconto (R$)</label><input type="text" id="jDs" inputmode="decimal" value="${r.desconto?txtBR(r.desconto):''}" placeholder="R$ 0,00"></div>
+    <div><label>Pagar o título</label><select id="jTi"><option value="">Automático (mais antigo primeiro)</option>${db.vendas.filter(v=>v.clienteId===r.clienteId).sort((a,b)=>a.data.localeCompare(b.data)).map(v=>`<option value="${v.id}" ${v.id===r.vendaId?'selected':''}>${esc(numCurto(v))} · ${fmtData(v.data)} · ${fmtR(valorVenda(v))}</option>`).join('')}</select></div>
     <div><label>Forma</label><select id="jF">${(FORMAS.includes(r.forma)||!r.forma?FORMAS:FORMAS.concat([r.forma])).map(f=>`<option ${f===r.forma?'selected':''}>${f}</option>`).join('')}</select></div><div class="datas"><div><label>Doc.</label><input type="text" id="jDc" value="${esc(r.doc||'')}"></div><div><label>Obs.</label><input type="text" id="jO" value="${esc(r.obs||'')}"></div></div>
     <div class="row"><button class="danger" id="jX">🗑 Excluir</button><button class="primary" id="jS">Salvar</button></div>`,(j,fechar)=>{
     j.querySelector('#jX').onclick=()=>{fechar();confirmarExcluir(`Excluir recebimento de ${fmtR(r.valor)}${r.desconto?' (e o desconto de '+fmtR(r.desconto)+')':''}?`,()=>{if(r.ajusteId&&db.ajustes.some(a=>a.id===r.ajusteId))apagarReg('ajustes',r.ajusteId);apagarReg('receb',r.id);render();toast('Excluído')})};
     j.querySelector('#jS').onclick=()=>{const v=r2(numBR(j.querySelector('#jV').value));if(!(v>0)){toast('Valor inválido');return}
-      const dsc=r2(numBR(j.querySelector('#jDs').value))||0,dt=j.querySelector('#jD').value||r.data,n={...r,data:dt,valor:v,forma:j.querySelector('#jF').value,doc:j.querySelector('#jDc').value.trim(),obs:j.querySelector('#jO').value.trim()};
+      const dsc=r2(numBR(j.querySelector('#jDs').value))||0,dt=j.querySelector('#jD').value||r.data,ti=j.querySelector('#jTi').value,n={...r,data:dt,valor:v,forma:j.querySelector('#jF').value,doc:j.querySelector('#jDc').value.trim(),obs:j.querySelector('#jO').value.trim()};if(ti)n.vendaId=ti;else delete n.vendaId;
       const aj=r.ajusteId&&db.ajustes.find(a=>a.id===r.ajusteId);
-      if(dsc>0){if(aj)salvarReg('ajustes',{...aj,valor:dsc,data:dt},false);else{const a2={id:'aj-'+uid(),clienteId:r.clienteId,cliente:r.cliente,tipo:'C',data:dt,valor:dsc,desc:'Desconto no recebimento',vendedor:r.vendedor||quem()};salvarReg('ajustes',a2,true);n.ajusteId=a2.id}n.desconto=dsc}
+      if(dsc>0){if(aj){const a1={...aj,valor:dsc,data:dt};if(ti)a1.vendaId=ti;else delete a1.vendaId;salvarReg('ajustes',a1,false)}else{const a2={id:'aj-'+uid(),clienteId:r.clienteId,cliente:r.cliente,tipo:'C',data:dt,valor:dsc,desc:'Desconto no recebimento',vendedor:r.vendedor||quem()};if(ti)a2.vendaId=ti;salvarReg('ajustes',a2,true);n.ajusteId=a2.id}n.desconto=dsc}
       else{if(aj)apagarReg('ajustes',aj.id);delete n.desconto;delete n.ajusteId}
       salvarReg('receb',n,false);fechar();render();toast('Recebimento salvo')}});
   if(ehRecente(r.id))ed();else comSenha(ed);
