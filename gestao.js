@@ -647,7 +647,7 @@ RENDER.gconf=()=>{
   const secs=[...el.querySelectorAll(':scope > section, :scope > details')];
   const mapa={venda:0,vend:1,desp:2,nuvem:[3,4]};
   if(gq.sub==='senha'){el.innerHTML=`<section class="panel"><h2>Senhas para abrir</h2><p class="note">Senha de cada botão da tela inicial. Deixe em branco para abrir direto, sem senha. A senha da Gestão também libera venda bloqueada e reabre despesca.</p>
-      ${[['desp','🐟 Despescas'],['vendas','🧾 Vendas'],['rec','💰 Receber'],['ver','📋 Resumo do dia'],['gest','📊 Gestão']].map(([k,t])=>`<div><label>${t}</label><input type="text" inputmode="numeric" maxlength="8" id="sn_${k}" value="${esc(senhaDe(k))}" autocomplete="off" placeholder="sem senha"></div>`).join('')}
+      ${[['desp','🐟 Despescas'],['vendas','🧾 Vendas'],['ver','📋 Resumo do dia'],['gest','📊 Gestão']].map(([k,t])=>`<div><label>${t}</label><input type="text" inputmode="numeric" maxlength="8" id="sn_${k}" value="${esc(senhaDe(k))}" autocomplete="off" placeholder="sem senha"></div>`).join('')}
       <button class="primary" data-a="salvarSenha">Salvar senhas</button></section>`;return}
   if(gq.sub==='emp'){const P=cad.params;el.innerHTML=`<section class="panel"><h2>Empresa (nas notas e relatórios)</h2><div><label>Empresa</label><input type="text" id="pEmp" value="${esc(P.empresa)}"></div><div><label>Unidade</label><input type="text" id="pUni" value="${esc(P.unidade)}"></div><div><label>Contato no rodapé (telefone, PIX)</label><input type="text" id="pCont" value="${esc(P.contato||'')}"></div><button class="primary" data-a="salvarEmp">Salvar</button></section>`;return}
   const idx=[].concat(mapa[gq.sub]);
