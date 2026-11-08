@@ -370,7 +370,7 @@ select.sel2{font-size:1rem}
 const SENHA='0000';
 const PRAZO=5*60*1000; // quem lançou pode editar/excluir por 5 minutos sem senha
 const API_PADRAO='https://script.google.com/macros/s/AKfycbwcOrQCcLUC2FmLZPAGfmJNChxdtbh80tajcaMXLvrJaAqedwJXFuZCsDIaxQl2E67gIw/exec'; // link do Google Script (/exec) — colar aqui depois de publicar o Code.gs
-const VERSAO='3';
+const VERSAO='4';
 const K={cad:'pc_cad',db:'pc_db',fila:'pc_fila',pend:'pc_pend',api:'pc_api',disp:'pc_disp',quem:'pc_quem',rascV:'pc_rascV',sync:'pc_sync',gest:'pc_gestOk'};
 const TABS=['vendas','receb','ajustes','bags','doacoes','custos','repasses'];
 const CATS=['Ração','Oxigênio / Aeração','Combustível / Transporte','Gelo','Mão de obra (fixa)','Mão de obra (diárias)','Insumos veterinários','Energia elétrica','Manutenção / Equipamentos','Alimentação','Hospedagem','Despesas administrativas','Investimentos','Outros'];
@@ -1018,8 +1018,8 @@ function vendaGravada(v,editou){
   const c=cliPorId(v.clienteId)||{};
   janela(`<h3>✅ Venda ${editou?'alterada':'gravada'}</h3><div class="kv"><div><span>Cliente</span><b>${esc(v.cliente)}</b></div><div><span>Peso</span><b>${fmtKg(v.peso)} kg</b></div><div class="forte"><span>Valor</span><b>${fmtR(v.valor)}</b></div><div><span>Vencimento</span><b>${fmtData(v.venc)}</b></div></div>
     <p class="note">${v.num?'':'O número do título sai assim que a venda chegar na nuvem.'}</p>
-    <button class="verde" id="jW">📲 Enviar nota no WhatsApp${c.tel?' do cliente':''}</button><button id="jP">📄 Nota em PDF</button><button class="primary" id="jN">⚖️ Nova venda</button>`,(j,fechar)=>{
-    j.querySelector('#jW').onclick=()=>compartilharTexto(textoNota(db.vendas.find(x=>x.id===v.id)||v),c.tel);
+    <button class="verde" id="jW">🖼 Nota em foto</button><button id="jP">📄 Nota em PDF</button><button class="primary" id="jN">⚖️ Nova venda</button>`,(j,fechar)=>{
+    j.querySelector('#jW').onclick=()=>exportarRel(relNota(db.vendas.find(x=>x.id===v.id)||v),'img',`Nota ${v.cliente} ${fmtData(v.data).replace(/\//g,'-')}`);
     j.querySelector('#jP').onclick=()=>exportarRel(relNota(db.vendas.find(x=>x.id===v.id)||v),'pdf',`Nota ${v.cliente} ${fmtData(v.data).replace(/\//g,'-')}`);
     j.querySelector('#jN').onclick=fechar;
   });
@@ -1086,11 +1086,12 @@ ACOES.rec={
     const p=posicao(c.id);const vai=()=>{const r={id:'rc-'+uid(),data:fr.data,clienteId:c.id,cliente:c.nome,valor:v,forma:fr.forma,doc:fr.doc.trim(),obs:fr.obs.trim(),vendedor:quem()};
       salvarReg('receb',r,true);ENTRAR.rec();render();window.scrollTo(0,0);
       const sal=posicao(c.id).aberto;janela(`<h3>✅ Recebimento gravado</h3><div class="kv"><div><span>Cliente</span><b>${esc(c.nome)}</b></div><div class="forte"><span>Recebido</span><b>${fmtR(v)}</b></div><div><span>Saldo em aberto agora</span><b>${fmtR(sal)}</b></div></div>
-        <button class="verde" id="jW">📲 Enviar recibo no WhatsApp${c.tel?' do cliente':''}</button><button class="primary" id="jF">OK</button>`,(j,fechar)=>{j.querySelector('#jW').onclick=()=>compartilharTexto(textoRecibo(r),c.tel);j.querySelector('#jF').onclick=fechar})};
+        <button class="verde" id="jW">🖼 Recibo em foto</button><button class="primary" id="jF">OK</button>`,(j,fechar)=>{j.querySelector('#jW').onclick=()=>exportarRel(relRecibo(r),'img',`Recibo ${r.cliente} ${fmtData(r.data).replace(/\//g,'-')}`);j.querySelector('#jF').onclick=fechar})};
     if(v>p.aberto+0.004)perguntar(`O valor (${fmtR(v)}) é maior que o débito em aberto (${fmtR(p.aberto)}).`,'Gravar mesmo assim','var(--warn)',vai,'A diferença fica como crédito do cliente.');else vai()},
   recEd(id){const r=db.receb.find(x=>x.id===id);if(r)editarReceb(r)},
   recDel(id){const r=db.receb.find(x=>x.id===id);if(r)excluirReceb(r)},
 };
+function relRecibo(r){const p=posicao(r.clienteId);return{titulo:'Recibo',sub:[r.cliente,'Data '+fmtData(r.data)],xlsNome:'Recibo',blocos:[{kv:[['Recebemos de',r.cliente],['Valor recebido',fmtR(r.valor),'#1f8f4e',true],['Forma de pagamento',r.forma||'—'],['Data',fmtData(r.data)]].concat(r.doc?[['Comprovante',r.doc]]:[]).concat([['Recebido por',r.vendedor||'—']])},{kv:[['Saldo em aberto após este pagamento',fmtR(p.aberto),p.vencido>0?'#b3261e':null,true]]}]}}
 function textoRecibo(r){const P=cad.params;const sal=posicao(r.clienteId).aberto;
   return [`*${P.empresa}* — Recibo`,`_${P.unidade}_`,'',`Recebemos de *${r.cliente}* o valor de *${fmtR(r.valor)}* (${r.forma}) em ${fmtData(r.data)}.`,r.doc?`Comprovante: ${r.doc}`:'','',`Saldo em aberto após este pagamento: *${fmtR(sal)}*`,'',P.empresa,P.contato||''].filter((x,i,a)=>x!==''||a[i-1]!=='').join('\n').trim()}
 function editarReceb(r){
@@ -1174,9 +1175,9 @@ function detalheVenda(v){
   janela(`<h3>🧾 ${esc(numVenda(v))}</h3><div class="kv"><div><span>Cliente</span><b>${esc(v.cliente)}</b></div><div><span>Data</span><b>${fmtData(v.data)}</b></div><div><span>Vencimento</span><b>${fmtData(v.venc)} ${sitVenda(v)}</b></div><div><span>Condição</span><b>${esc(v.cond||'A PRAZO')}</b></div><div><span>Despesca</span><b>${esc(d?d.descricao:'—')}</b></div><div><span>Vendedor</span><b>${esc(v.vendedor||'—')}</b></div>${v.nf?`<div><span>Nota</span><b>${esc(v.nf)}</b></div>`:''}${v.obs?`<div><span>Obs.</span><b>${esc(v.obs)}</b></div>`:''}</div>
     ${(v.itens||[]).map(i=>`<div class="item"><div class="itemTopo"><div><b>${esc(i.produto)} — ${esc(i.classe)}</b><small>${fmtKg(pesoItem(i))} kg × ${fmtR(i.preco)}/kg</small></div><b>${fmtR(valorItem(i))}</b></div><div class="pesadas">${(i.pesadas||[]).map((p,k)=>`<button disabled style="opacity:1"><i>${k+1}</i>${fmtKg(p)}</button>`).join('')}</div></div>`).join('')}
     <div class="totVenda"><div><small>Peso</small><b>${fmtKg(pesoVenda(v))} kg</b></div><div style="text-align:right"><small>Valor</small><b>${fmtR(valorVenda(v))}</b></div></div>
-    <div class="compart"><button class="verde" id="jW">📲 WhatsApp</button><button class="verde" id="jP">📄 PDF</button></div>
+    <div class="compart"><button class="verde" id="jW">🖼 Foto</button><button class="verde" id="jP">📄 PDF</button></div>
     <div class="row"><button class="danger" id="jX">🗑 Excluir</button><button id="jE">✏️ Editar</button></div>`,(j,fechar)=>{
-    j.querySelector('#jW').onclick=()=>compartilharTexto(textoNota(v),c.tel);
+    j.querySelector('#jW').onclick=()=>exportarRel(relNota(v),'img',`Nota ${v.cliente} ${fmtData(v.data).replace(/\//g,'-')}`);
     j.querySelector('#jP').onclick=()=>exportarRel(relNota(v),'pdf',`Nota ${v.cliente} ${fmtData(v.data).replace(/\//g,'-')}`);
     j.querySelector('#jE').onclick=()=>{fechar();editarVenda(v,tela)};
     j.querySelector('#jX').onclick=()=>{fechar();excluirVenda(v)};
@@ -1251,7 +1252,7 @@ RENDER.extr=()=>{
     <p class="note">${[c.apelido,c.tel,c.cidade,c.bairro].filter(Boolean).map(esc).join(' · ')||'—'} · prazo ${c.prazo||0} dias</p>
     <div class="stat"><div><small>Em aberto</small><b class="num">${fmtR(x.p.aberto).replace('R$ ','')}</b></div><div><small>Vencido</small><b class="num ${x.p.vencido>0?'neg':''}">${fmtR(x.p.vencido).replace('R$ ','')}</b></div><div><small>Maior atraso</small><b class="num">${x.p.maiorAtraso} d</b></div></div>
     <div class="row"><button data-a="precos">💲 Preços negociados</button><button data-a="ajuste">± Ajuste / desconto</button></div>
-    <div class="compart"><button class="verde" data-a="wa">📲 Extrato WhatsApp</button><button class="verde" data-a="exp" data-v="pdf">📄 PDF</button><button class="verde" data-a="exp" data-v="xls">📊 Excel</button></div></section>`;
+    <div class="compart"><button class="verde" data-a="exp" data-v="img">🖼 Foto</button><button class="verde" data-a="exp" data-v="pdf">📄 PDF</button><button class="verde" data-a="exp" data-v="xls">📊 Excel</button></div></section>`;
   if(x.p.abertos.length)h+=`<section class="panel"><h2>Títulos em aberto</h2><div class="tabWrap"><table class="tabela"><tr><th>Título</th><th>Venc.</th><th class="r">Valor</th><th class="r">Aberto</th></tr>${x.p.abertos.map(t=>`<tr><td>${t.tipo==='VENDA'?esc(numCurto(t.rec)):'Ajuste'}<br><small>${fmtData(t.data)}</small></td><td>${fmtData(t.venc)}<br>${sitTag(t)}</td><td class="r">${fmtR(t.valor)}</td><td class="r"><b>${fmtR(t.aberto)}</b></td></tr>`).join('')}<tr class="tot"><td colspan="3">Total em aberto</td><td class="r">${fmtR(x.p.aberto)}</td></tr></table></div></section>`;
   h+=`<section class="panel"><h2>Movimentação</h2>${ge.desp?'':perHtml(ge)}<div><label>Por ciclo de despesca</label>${despSelHtml(ge.desp,true)}</div>
     ${ge.de&&!ge.desp?`<div class="kv"><div><span>Saldo anterior a ${fmtData(ge.de)}</span><b>${fmtR(x.ant)}</b></div></div>`:''}`;
@@ -1316,13 +1317,13 @@ RENDER.gcob=()=>{
     <section class="panel"><h2>${gb.faixa?esc(gb.faixa):'Títulos vencidos'} — ${grupos.length} cliente(s)</h2>${botoesExp()}`;
   h+=grupos.map(g=>`<div class="item"><div class="itemTopo"><div><b>${esc(g.c.nome)}</b><small>${esc(g.c.tel||'sem telefone')}</small></div><b class="neg">${fmtR(g.v)}</b></div>
     <table class="tabela">${g.l.map(t=>`<tr><td>${t.tipo==='VENDA'?esc(numCurto(t.rec)):'Ajuste'}<br><small>emissão ${fmtData(t.data)}</small></td><td>venc. ${fmtData(t.venc)}<br>${sitTag(t)}</td><td class="r">${fmtR(t.aberto)}</td></tr>`).join('')}</table>
-    <div class="row"><button class="mini" data-a="ext" data-v="${g.c.id}">Extrato</button><button class="mini verde" data-a="cobrar" data-v="${g.c.id}">📲 Cobrar</button></div></div>`).join('')||'<div class="vazio">Nenhum título nesta faixa. 👍</div>';
+    <div class="row"><button class="mini" data-a="ext" data-v="${g.c.id}">Extrato</button><button class="mini verde" data-a="cobrar" data-v="${g.c.id}">🖼 Foto</button></div></div>`).join('')||'<div class="vazio">Nenhum título nesta faixa. 👍</div>';
   h+=`</section>`;$('t-gcob').innerHTML=h;
 };
 function textoCobranca(c){const P=cad.params,p=posicao(c.id);const L=[`*${P.empresa}* — Lembrete de pagamento`,`_${P.unidade}_`,'',`Olá, *${c.nome}*! Consta em aberto:`];
   p.abertos.forEach(t=>L.push(`• ${t.tipo==='VENDA'?numVenda(t.rec):'Ajuste'} — venc. ${fmtData(t.venc)} — ${fmtR(t.aberto)}${t.atraso>0?` (${t.atraso} dias de atraso)`:''}`));
   L.push('',`Total vencido: *${fmtR(p.vencido)}*`,`Total em aberto: *${fmtR(p.aberto)}*`,'','Qualquer dúvida estamos à disposição.',P.empresa);if(P.contato)L.push(P.contato);return L.join('\n')}
-ACOES.gcob={fx(v){gb.faixa=gb.faixa===v?'':v;render()},ext(id){extrCli=id;ir('extr')},cobrar(id){const c=cliPorId(id);compartilharTexto(textoCobranca(c),c.tel)},
+ACOES.gcob={fx(v){gb.faixa=gb.faixa===v?'':v;render()},ext(id){extrCli=id;ir('extr')},cobrar(id){const c=cliPorId(id),p=posicao(c.id);exportarRel({titulo:'Lembrete de pagamento',sub:[c.nome,'Posição em '+fmtData(chaveDia())],xlsNome:'Cobrança',blocos:[{tit:'Títulos em aberto',cols:[{t:'Título',w:16},{t:'Emissão',w:12},{t:'Vencimento',w:12},{t:'Aberto',w:14,al:'r'},{t:'Atraso',w:12,al:'r'}],linhas:p.abertos.map(t=>[t.tipo==='VENDA'?numCurto(t.rec):'Ajuste',fmtData(t.data),fmtData(t.venc),fmtR(t.aberto),t.atraso>0?t.atraso+' dias':'a vencer']),cores:p.abertos.map(t=>t.atraso>0?[null,null,'#b3261e',null,'#b3261e']:null),total:['TOTAL','','',fmtR(p.aberto),'']},{kv:[['Total vencido',fmtR(p.vencido),p.vencido>0?'#b3261e':null,true],['Total em aberto',fmtR(p.aberto),null,true]]}]},'img','Cobranca '+c.nome)},
   exp(t){const cart=carteira().filter(({t})=>gb.faixa?(gb.faixa==='A vencer'?t.atraso<=0:t.faixa===gb.faixa):t.atraso>Number(cad.params.tolerancia||0)).sort((a,b)=>ordTxt(a.c.nome,b.c.nome)||a.t.venc.localeCompare(b.t.venc));
     const tot=r2(cart.reduce((s,x)=>s+x.t.aberto,0));
     exportarRel({titulo:'Relação de cobrança',sub:[gb.faixa||'Títulos vencidos','Posição em '+fmtData(chaveDia())],xlsNome:'Cobrança',blocos:[
@@ -1352,7 +1353,7 @@ RENDER.gfech=()=>{
   const a=apurar(gf.desp),d=a.d;
   let h=`<section class="panel"><h2>Despesca</h2>${despSelHtml(gf.desp,false)}<div class="row" style="align-items:center"><span>${d.encerrada?`<span class="estado fechada">ENCERRADA</span> <small class="note">${d.encerradaEm?fmtDH(d.encerradaEm):''}</small>`:'<span class="estado aberta">ABERTA</span>'}</span>
     ${d.encerrada?'<button class="mini" data-a="reabrir">🔓 Reabrir</button>':'<button class="mini danger" data-a="encerrar">🔒 Encerrar despesca</button>'}</div>
-    <div class="compart"><button class="verde" data-a="wa">📲 Resumo</button><button class="verde" data-a="exp" data-v="pdf">📄 PDF</button><button class="verde" data-a="exp" data-v="xls">📊 Excel</button></div></section>
+    <div class="compart"><button class="verde" data-a="exp" data-v="img">🖼 Foto</button><button class="verde" data-a="exp" data-v="pdf">📄 PDF</button><button class="verde" data-a="exp" data-v="xls">📊 Excel</button></div></section>
     <section class="panel"><h2>Vendas</h2><div class="stat"><div><small>Kg vendidos</small><b class="num">${fmtKg(a.kg)}</b></div><div><small>Faturamento</small><b class="num">${fmtR(a.fat).replace('R$ ','')}</b></div><div><small>R$/kg médio</small><b class="num">${fmtN2(a.pm)}</b></div></div>
     <div class="kv"><div><span>Vendas / clientes</span><b>${a.vs.length} / ${a.porCli.length}</b></div><div><span>Já recebido</span><b class="pos">${fmtR(a.recebido)}</b></div><div><span>A receber</span><b class="${a.aberto>0?'neg':''}">${fmtR(a.aberto)}</b></div></div>
     ${tabHtml(['Classificação','Kg','R$','R$/kg'],a.porClasse.map(g=>[g.k,fmtKg(g.kg),fmtR(g.r),fmtN2(g.kg?g.r/g.kg:0)]))}
@@ -1454,7 +1455,7 @@ RENDER.gacer=()=>{
    <section class="panel"><h2>Prestação de contas</h2><div class="kv">${ga.de?`<div><span>Residual anterior</span><b>${fmtR(a.residual)}</b></div>`:''}<div><span>+ Recebido dos clientes</span><b class="pos">${fmtR(a.recebido)}</b></div><div><span>− Repassado à fazenda</span><b>${fmtR(a.repassado)}</b></div><div><span>− Despesas pagas com o dinheiro em mãos</span><b>${fmtR(a.emMaosDesp)}</b></div>
     <div class="forte"><span>= Valor em mãos</span><b class="${a.emMaos<0?'neg':''}">${fmtR(a.emMaos)}</b></div></div>
     <div class="kv"><div><span>Vendas no período</span><b>${fmtR(a.vendas)}</b></div><div><span>Descontos concedidos</span><b>${fmtR(a.desc)}</b></div><div><span>A receber dos clientes (hoje)</span><b>${fmtR(a.aRec)}</b></div><div><span>Vencido</span><b class="neg">${fmtR(a.venc)}</b></div></div>
-    <div class="compart"><button class="verde" data-a="wa">📲 Resumo</button><button class="verde" data-a="exp" data-v="pdf">📄 PDF</button><button class="verde" data-a="exp" data-v="xls">📊 Excel</button></div></section>
+    <div class="compart"><button class="verde" data-a="exp" data-v="img">🖼 Foto</button><button class="verde" data-a="exp" data-v="pdf">📄 PDF</button><button class="verde" data-a="exp" data-v="xls">📊 Excel</button></div></section>
    <section class="panel"><h2>Lançar repasse à fazenda</h2>${dataHtml('data',f.data)}<div><label>Valor (R$)</label><input type="text" class="big" inputmode="decimal" data-f="valor" value="${esc(f.valor)}" placeholder="0,00"></div>
     <div class="chips">${['PIX','DINHEIRO','TRANSFERÊNCIA','DEPÓSITO'].map(x=>`<button data-a="forma" data-v="${x}" class="${f.forma===x?'sel':''}">${x}</button>`).join('')}</div>
     <div class="datas"><div><label>Comprovante</label><input type="text" data-f="doc" value="${esc(f.doc)}"></div><div><label>Recebido por</label><input type="text" data-f="recPor" value="${esc(f.recPor)}"></div></div>
