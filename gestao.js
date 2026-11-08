@@ -458,7 +458,7 @@ async function checarVersao(forcar){
     let tentou='';try{tentou=sessionStorage.getItem('pc_tentou')||''}catch(e){}
     if(tentou===v&&!forcar)return;
     try{sessionStorage.setItem('pc_tentou',v)}catch(e){}
-    if(FORMS.includes(tela)||!$('tecSenha').hidden||document.querySelector('.fundo'))return; // não atrapalha quem está lançando
+    if(!forcar&&(FORMS.includes(tela)||!$('tecSenha').hidden||document.querySelector('.fundo')))return; // não atrapalha quem está lançando
     try{const r=navigator.serviceWorker&&await navigator.serviceWorker.getRegistration();if(r)await r.update()}catch(e){}
     toast('Atualizando o app…');setTimeout(()=>location.reload(),600);
   }catch(e){}
@@ -552,7 +552,7 @@ function relHtml(rel){
   return rel.blocos.map(b=>(b.tit?`<div class="secTit">${esc(b.tit)}</div>`:'')
     +(b.kv?`<div class="kv">${b.kv.map(r=>`<div class="${r[3]?'forte':''}"><span>${esc(r[0])}</span><b${r[2]?` style="color:${r[2]}"`:''}>${esc(r[1])}</b></div>`).join('')}</div>`:'')
     +(b.txt?`<p class="note" style="white-space:pre-line">${esc(b.txt)}</p>`:'')
-    +(b.cols?`<div class="tabWrap"><table class="tabela"><tr>${b.cols.map((c,i)=>`<th class="${al(b,i)}">${esc(c.t)}</th>`).join('')}</tr>${b.linhas.length?b.linhas.map((l,li)=>`<tr>${l.map((v,i)=>`<td class="${al(b,i)}"${b.cores&&b.cores[li]&&b.cores[li][i]?` style="color:${b.cores[li][i]}"`:''}>${esc(v??'')}</td>`).join('')}</tr>`).join(''):`<tr><td colspan="${b.cols.length}">Nenhum registro.</td></tr>`}${b.total?`<tr class="tot">${b.total.map((v,i)=>`<td class="${al(b,i)}">${esc(v??'')}</td>`).join('')}</tr>`:''}</table></div>`:'')).join('');
+    +(b.cols?`<div class="tabWrap"><table class="tabela"><tr>${b.cols.map((c,i)=>`<th class="${al(b,i)}">${esc(c.t)}</th>`).join('')}</tr>${b.linhas.length?b.linhas.map((l,li)=>l&&l.sub?`<tr><td colspan="${b.cols.length}" style="font-size:.8rem;color:var(--muted);padding-top:0">${esc(l.sub)}</td></tr>`:`<tr>${l.map((v,i)=>`<td class="${al(b,i)}"${b.cores&&b.cores[li]&&b.cores[li][i]?` style="color:${b.cores[li][i]}"`:''}>${esc(v??'')}</td>`).join('')}</tr>`).join(''):`<tr><td colspan="${b.cols.length}">Nenhum registro.</td></tr>`}${b.total?`<tr class="tot">${b.total.map((v,i)=>`<td class="${al(b,i)}">${esc(v??'')}</td>`).join('')}</tr>`:''}</table></div>`:'')).join('');
 }
 function juntarRels(ids){const p=relPer(),rs=ids.map(relDe);
   return{titulo:'Relatórios',sub:[rotPer(p.de,p.ate)],xlsNome:'Relatórios',blocos:rs.flatMap(r=>[{kv:[[r.titulo.toUpperCase(),(r.sub||[]).join(' · '),'#0d47a1',true]]},...r.blocos])}}

@@ -445,7 +445,7 @@ body.naInicio .gIniBar{display:none}
    ===================================================================== */
 const PRAZO=5*60*1000; // quem lançou pode editar/excluir por 5 minutos sem senha
 const API_PADRAO='https://script.google.com/macros/s/AKfycbwcOrQCcLUC2FmLZPAGfmJNChxdtbh80tajcaMXLvrJaAqedwJXFuZCsDIaxQl2E67gIw/exec'; // link do Google Script (/exec) — colar aqui depois de publicar o Code.gs
-const VERSAO='18';
+const VERSAO='19';
 const K={cad:'pc_cad',db:'pc_db',fila:'pc_fila',pend:'pc_pend',api:'pc_api',disp:'pc_disp',quem:'pc_quem',rascV:'pc_rascV',sync:'pc_sync',gest:'pc_gestOk'};
 const TABS=['vendas','receb','ajustes','bags','doacoes','custos','repasses'];
 const CATS=['Ração','Oxigênio / Aeração','Combustível / Transporte','Gelo','Mão de obra (fixa)','Mão de obra (diárias)','Insumos veterinários','Energia elétrica','Manutenção / Equipamentos','Alimentação','Hospedagem','Despesas administrativas','Investimentos','Outros'];
@@ -680,7 +680,7 @@ const nomeArq=s=>String(s).replace(/[\\/:*?"<>|]/g,'-').replace(/\s+/g,' ').trim
    título "FJK - <relatório> - data", faixa da seção com o período, cabeçalho em maiúsculas, linhas zebradas, total escuro */
 const AZ='#0d47a1',AZ2='#e3eefb',AZC='#64b5f6',TX='#11253d',MU='#5d6b7a',FNT='-apple-system,"Segoe UI",Roboto,Arial,sans-serif',LARG=880;
 function secoesDeRel(rel){const S=[],sub=[].concat(rel.sub||[]).filter(Boolean).join(' · ');let primeira=true;
-  const cab=t=>{const c=primeira?[t||rel.titulo,sub].filter(Boolean).join(' · '):(t||'');primeira=false;return c};
+  const cab=t=>{const c=primeira?(rel.semCab1&&!t?'':[t||rel.titulo,sub].filter(Boolean).join(' · ')):(t||'');primeira=false;return c};
   for(const b of rel.blocos){
     if(b.kv)S.push({cab:cab(b.tit),cols:[['',LARG*0.56,'l'],['',LARG*0.44,'r']],linhas:b.kv.map(r=>[r[0],r[1]]),cores:b.kv.map(r=>[r[3]?AZ:null,r[2]||(r[3]?AZ:null)]),fortes:b.kv.map(r=>!!r[3])});
     if(b.txt){const ln=[];MED.font=`500 19px ${FNT}`;quebrar(MED,b.txt,LARG-20).forEach(l=>ln.push([l]));S.push({cab:cab(b.tit),cols:[['',LARG,'l']],linhas:ln,txt:true})}
@@ -692,7 +692,7 @@ const MED=document.createElement('canvas').getContext('2d');
 function quebrar(c,t,w){const out=[];String(t||'').split('\n').forEach(par=>{let l='';par.split(/\s+/).forEach(p=>{const x=l?l+' '+p:p;if(c.measureText(x).width>w&&l){out.push(l);l=p}else l=x});out.push(l)});return out}
 function gImagem(titulo,secoes){
   const M=30,W=M*2+LARG,RH=44;let H=120;
-  secoes.forEach(s=>{H+=(s.cab?50:10)+(s.cols.some(c=>c[0])?40:6)+RH*s.linhas.length+(s.total?52:0)+24});H+=20;
+  secoes.forEach(s=>{H+=(s.cab?50:10)+(s.cols.some(c=>c[0])?40:6)+s.linhas.reduce((a,l)=>a+(l&&l.sub?30:RH),0)+(s.total?52:0)+24});H+=20;
   /* o iPhone não desenha canvas com mais de ~16,7 milhões de pixels: relatório comprido baixa a resolução; comprido demais avisa */
   const esc=Math.min(2,Math.sqrt(15e6/(W*H)));if(esc<0.7){const e=new Error('grande');e.grande=true;throw e}
   const cv=document.createElement('canvas');cv.width=Math.floor(W*esc);cv.height=Math.floor(H*esc);const c=cv.getContext('2d');c.scale(esc,esc);
@@ -703,7 +703,7 @@ function gImagem(titulo,secoes){
   secoes.forEach(s=>{const cols=s.cols,px=(k,a)=>{let x=M;for(let i=0;i<k;i++)x+=cols[i][1];const w=cols[k][1];return a==='l'?x+8:a==='c'?x+w/2:x+w-8};
     if(s.cab){c.fillStyle=AZ2;c.fillRect(M,y,W-2*M,44);c.fillStyle='#1e88e5';c.fillRect(M,y,6,44);c.fillStyle=TX;let f=22;c.font=`700 ${f}px ${FNT}`;while(c.measureText(s.cab).width>W-2*M-30&&f>13){f--;c.font=`700 ${f}px ${FNT}`}c.textAlign='left';c.fillText(s.cab,M+16,y+22);y+=50}else y+=10;
     if(cols.some(x=>x[0])){c.font=`700 14px ${FNT}`;c.fillStyle=MU;cols.forEach(([t,w,a],k)=>{c.textAlign=al(a);let tx=String(t).toUpperCase(),f=14;while(c.measureText(tx).width>w-12&&f>9){f--;c.font=`700 ${f}px ${FNT}`}c.fillText(tx,px(k,a),y+20);c.font=`700 14px ${FNT}`});y+=40;c.fillStyle='#dde3ea';c.fillRect(M,y-2,W-2*M,2)}else y+=6;
-    s.linhas.forEach((l,i)=>{const forte=s.fortes&&s.fortes[i];if(forte){c.fillStyle=AZ2;c.fillRect(M,y,W-2*M,RH)}else if(i%2){c.fillStyle='#f7f9fb';c.fillRect(M,y,W-2*M,RH)}
+    let zi=0;s.linhas.forEach((l,i)=>{if(l&&l.sub){c.textAlign='left';c.fillStyle=MU;c.font=`500 15px ${FNT}`;let t=String(l.sub),f=15;while(c.measureText(t).width>W-2*M-20&&f>10){f--;c.font=`500 ${f}px ${FNT}`}c.fillText(t,M+18,y+13);y+=30;c.fillStyle='#dde3ea';c.fillRect(M,y-1,W-2*M,1);return}const forte=s.fortes&&s.fortes[i];if(forte){c.fillStyle=AZ2;c.fillRect(M,y,W-2*M,RH)}else if(i%2){c.fillStyle='#f7f9fb';c.fillRect(M,y,W-2*M,RH)}
       l.forEach((v,k)=>{if(!cols[k])return;const a=cols[k][2];c.textAlign=al(a);const pe=(s.txt?'500 ':(k===0||forte?'700 ':'500 '));let t=String(v??''),f=19;c.font=pe+f+'px '+FNT;
         c.fillStyle=(s.cores&&s.cores[i]&&s.cores[i][k])||TX;while(c.measureText(t).width>cols[k][1]-12&&f>11){f--;c.font=pe+f+'px '+FNT}c.fillText(t,px(k,a),y+RH/2)});
       y+=RH;c.fillStyle='#dde3ea';c.fillRect(M,y-1,W-2*M,1)});
@@ -820,7 +820,7 @@ function xlsxDeRel(rel){
   const res=[];rel.blocos.forEach(b=>{if(b.kv){if(b.tit)res.push([{v:b.tit,s:4}]);b.kv.forEach(r=>res.push([{v:r[0],s:r[3]?4:0},celula(r[1],r[3])]))}if(b.txt)res.push([{v:b.txt}])});
   if(res.length)abas.push([nomeAba('Resumo'),[[{v:'Item',s:1},{v:'Valor',s:1}],...res],[40,22]]);
   const tabs=rel.blocos.filter(b=>b.cols);
-  tabs.forEach(b=>{const rows=[b.cols.map(c=>({v:c.t,s:1})),...b.linhas.map(r=>r.map(v=>celula(v)))];if(b.total)rows.push(b.total.map(v=>celula(v,1)));
+  tabs.forEach(b=>{const rows=[b.cols.map(c=>({v:c.t,s:1})),...b.linhas.map(r=>r&&r.sub?[{v:r.sub}]:r.map(v=>celula(v)))];if(b.total)rows.push(b.total.map(v=>celula(v,1)));
     abas.push([nomeAba(tabs.length===1?rel.xlsNome:b.tit),rows,b.cols.map(c=>Math.max(10,Math.min(48,Math.round(c.w*1.1))))])});
   if(!abas.length)abas.push([nomeAba(),[[{v:rel.titulo,s:1}]],[30]]);
   return montarXlsx(abas);
@@ -1138,13 +1138,12 @@ function textoNota(v){
 }
 function relNota(v){const p=posicao(v.clienteId),d=despPorId(v.despescaId);
   return{titulo:'Nota de venda',sub:[numVenda(v)+' · '+v.cliente,`Data ${fmtData(v.data)} · vencimento ${fmtData(v.venc)}`],blocos:[
-    {kv:[['Cliente',nomeCli(cliPorId(v.clienteId))||v.cliente],['Data da venda',fmtData(v.data)],['Vencimento',fmtData(v.venc)],['Condição',v.cond||'A PRAZO'],['Despesca',d?d.descricao:'—'],['Vendedor',v.vendedor||'—']].concat(v.nf?[['Nota',v.nf]]:[])},
+    {kv:[['Cliente',nomeCli(cliPorId(v.clienteId))||v.cliente],['Data da venda',fmtData(v.data)],['Condição',v.cond||'A PRAZO'],['Vencimento',fmtData(v.venc)],['Despesca',d?d.descricao:'—'],['Vendedor',v.vendedor||'—']].concat(v.nf?[['Nota',v.nf]]:[])},
     {tit:'Itens',cols:[{t:'Peixe / classificação',w:34},{t:'Pesadas',w:9,al:'r'},{t:'Peso kg',w:12,al:'r'},{t:'R$/kg',w:12,al:'r'},{t:'Valor',w:15,al:'r'}],
-      linhas:(v.itens||[]).map(i=>[`${i.produto} — ${i.classe}`,String((i.pesadas||[]).length),fmtKg(pesoItem(i)),fmtR(i.preco),fmtR(valorItem(i))]),
+      linhas:(v.itens||[]).flatMap(i=>[[`${i.produto} — ${i.classe}`,String((i.pesadas||[]).length),fmtKg(pesoItem(i)),fmtR(i.preco),fmtR(valorItem(i))],{sub:`Pesadas: ${(i.pesadas||[]).map(fmtKg).join(' + ')} = ${fmtKg(pesoItem(i))} kg`}]),
       total:['TOTAL',String((v.itens||[]).reduce((s,i)=>s+(i.pesadas||[]).length,0)),fmtKg(pesoVenda(v)),'',fmtR(valorVenda(v))]},
-    {tit:'Pesadas',txt:(v.itens||[]).map(i=>`${i.produto} ${i.classe}: ${(i.pesadas||[]).map(fmtKg).join(' + ')} = ${fmtKg(pesoItem(i))} kg`).join('\n')},
     {kv:[['Valor desta nota',fmtR(valorVenda(v)),null,true],['Saldo total em aberto do cliente',fmtR(p.aberto),p.vencido>0?'#b3261e':null,true]]},
-  ],xlsNome:'Nota'}}
+  ],xlsNome:'Nota',semCab1:true}}
 
 /* =====================================================================
    RECEBER
