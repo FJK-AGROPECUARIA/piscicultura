@@ -715,13 +715,13 @@ ENTRAR.gdesp=()=>{aplicaPer(gq2,'7');gq2.desp='';gq2.tq=''};
 function bagsFiltro(){return db.bags.filter(b=>(gq2.desp?b.despescaId===gq2.desp:naFaixa(b.data,gq2.de,gq2.ate))&&(!gq2.tq||b.tanque===gq2.tq)).sort((a,b)=>b.data.localeCompare(a.data)||String(b.registradoEm).localeCompare(String(a.registradoEm)))}
 RENDER.gdesp=()=>{const l=bagsFiltro(),r=resumoBags(l),tqs=[...new Set(db.bags.map(b=>b.tanque))].sort(ordTxt);
   let h=`<section class="panel"><h2>Filtros</h2>${gq2.desp?'':perHtml(gq2)}${despSelHtml(gq2.desp,true,'Despesca')}${selSetas('Tanque / viveiro','tq',[['','Todos os tanques']].concat(tqs.map(t=>[t,t])),gq2.tq)}</section>
-   <section class="panel">${titNovo('Despescas efetivadas','novoBag')}<div class="stat"><div><small>Bags</small><b class="num">${r.n}</b></div><div><small>Kg despescado</small><b class="num">${fmtKg(r.kg)}</b></div><div><small>Peixes</small><b class="num">${r.q?fmtI(r.q):'—'}</b></div></div>`;
+   <section class="panel">${titNovo('Despescas efetivadas','novoBag')}<div class="stat"><div><small>Bags</small><b class="num">${r.n}</b></div><div><small>Kg despescado</small><b class="num">${fmtKg(r.kg)}</b></div><div><small>Peixes</small><b class="num">${r.q?fmtI(r.q):'—'}</b></div></div>${botoesExp()}`;
   const porT=Object.values(l.reduce((o,b)=>{const x=b.tanque+' · '+b.produto;(o[x]=o[x]||{k:x,l:[]}).l.push(b);return o},{})).map(x=>({k:x.k,...resumoBags(x.l)})).sort((a,b)=>b.kg-a.kg);
   if(porT.length)h+=tabHtml(['Tanque · peixe','Bags','Kg'],porT.map(x=>[x.k,String(x.n),fmtKg(x.kg)]));
   let dia='';l.forEach(b=>{if(b.data!==dia){dia=b.data;const dv=resumoBags(l.filter(x=>x.data===dia));h+=`<div class="dia"><span>${nomeDia(dia)}, ${fmtData(dia)}</span><span>${dv.n} bags · ${fmtKg(dv.kg)} kg</span></div>`}
     h+=`<button class="reg" data-a="ed" data-v="${b.id}"><div><span class="eqn">${esc(b.tanque)} · ${esc(b.produto)}</span><div class="faz">${fmtHora(b.registradoEm)}${b.lancadoPor?' · '+esc(b.lancadoPor):''}${b.qtd?' · '+fmtI(b.qtd)+' peixes':''}</div>${b.obs?`<div class="obs">${esc(b.obs)}</div>`:''}</div><div class="lt">${fmtKg(b.peso)}<small>kg</small></div></button>`});
   if(!l.length)h+='<div class="vazio">Nenhuma despesca no filtro.</div>';
-  h+=`${l.length?botoesExp():''}<p class="note">Toque num bag para ver, editar ou excluir.</p></section>`;
+  h+=`<p class="note">Toque num bag para ver, editar ou excluir.</p></section>`;
   $('t-gdesp').innerHTML=h};
 CAMPOS.gdesp=(f,el)=>{if(f==='de'||f==='ate'){gq2[f]=el.value;gq2.per='';ajustaPar(gq2,f);render();return}if(f==='desp'){gq2.desp=el.value;render();return}if(f==='tq'){gq2.tq=el.value;render()}};
 ACOES.gdesp={per(v){aplicaPer(gq2,v);render()},novoBag(){if(!quem()){escolherQuem(()=>ir('desp'));return}ir('desp')},ed(id){const b=db.bags.find(x=>x.id===id);if(b)editarBag(b)},
