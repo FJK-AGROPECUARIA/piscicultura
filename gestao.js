@@ -9,7 +9,7 @@ function aplicaPer(st,p){st.per=p;const h=chaveDia(),d=dDe(h);
   if(p==='mesant'){st.de=chaveDia(new Date(d.getFullYear(),d.getMonth()-1,1));st.ate=chaveDia(new Date(d.getFullYear(),d.getMonth(),0))}
   if(p==='tudo'){st.de='';st.ate=''}}
 /* filtro de período no padrão do Gestão de Tratos: sempre duas datas (De · Até) e os atalhos embaixo */
-const perHtml=(st,o)=>`<div class="datas"><div><label>De</label><input type="date" data-f="de" value="${st.de||''}"></div><div><label>Até</label><input type="date" data-f="ate" value="${st.ate||''}"></div></div>
+const perHtml=(st,o)=>`<div class="datas perDatas"><div><label>De</label><input type="date" data-f="de" value="${st.de||''}"></div><div><label>Até</label><input type="date" data-f="ate" value="${st.ate||''}"></div></div>
   <div class="atalhos">${[['7','7 dias'],['15','15 dias'],['30','30 dias'],['mes','Este mês']].concat(o&&o.tudo?[['tudo','Tudo']]:[]).map(([k,t])=>`<button class="mini${st.per===k?' sel':''}" data-a="per" data-v="${k}">${t}</button>`).join('')}</div>`;
 /* escolha com setas ◀ lista ▶ (igual ao Tratos): as setas passam para o anterior/próximo da lista */
 const selSetas=(lbl,f,ops,sel)=>`<div class="selNav">${lbl?`<label>${lbl}</label>`:''}<div class="selLinha"><button type="button" class="gSeta" data-seta="-1" aria-label="Anterior">◀</button><select class="sel2" data-f="${f}">${ops.map(([v,t])=>`<option value="${esc(v)}" ${v===sel?'selected':''}>${esc(t)}</option>`).join('')}</select><button type="button" class="gSeta" data-seta="1" aria-label="Próximo">▶</button></div></div>`;
@@ -487,11 +487,14 @@ function relVendasP(de,ate,parte){
   if(parte==='cls'){const g=agrupaItens(l,(v,i)=>i.produto+' — '+i.classe);return{titulo:'Vendas por classificação',sub:[sub],xlsNome:'Por classificação',blocos:[resumo,{cols:[{t:'Peixe / classificação',w:40},{t:'Kg',w:14,al:'r'},{t:'Valor',w:16,al:'r'},{t:'R$/kg',w:12,al:'r'}],linhas:g.map(x=>[x.k,fmtKg(x.kg),fmtR(x.r),fmtN2(x.kg?x.r/x.kg:0)]),total:['TOTAL',fmtKg(kg),fmtR(rs),fmtN2(kg?rs/kg:0)]}]}}
   return{titulo:'Vendas',sub:[sub],xlsNome:'Vendas',blocos:[resumo,{cols:[{t:'Data',w:11},{t:'Nº',w:7},{t:'Cliente',w:24},{t:'Itens',w:28},{t:'Kg',w:11,al:'r'},{t:'Valor',w:14,al:'r'},{t:'Cond.',w:10}],linhas:l.map(v=>[fmtData(v.data),v.num?String(v.num).padStart(4,'0'):'—',v.cliente,(v.itens||[]).map(i=>i.classe).join(', '),fmtKg(pesoVenda(v)),fmtR(valorVenda(v)),v.cond||'']),total:['TOTAL','','','',fmtKg(kg),fmtR(rs),'']}]};
 }
+/* descontos dados no recebimento: os ligados a um recebimento ficam nele; os lançados sem valor aparecem sozinhos */
+const descSoltos=(de,ate,cli)=>db.ajustes.filter(a=>a.tipo==='C'&&/^Desconto no recebimento/.test(a.desc||'')&&naFaixa(a.data,de,ate)&&(!cli||a.clienteId===cli)&&!db.receb.some(r=>r.ajusteId===a.id));
 function relRecebP(de,ate){
-  const l=db.receb.filter(r=>naFaixa(r.data,de,ate)).sort((a,b)=>a.data.localeCompare(b.data));const tot=r2(l.reduce((s,r)=>s+Number(r.valor||0),0));
+  const l=db.receb.filter(r=>naFaixa(r.data,de,ate)).sort((a,b)=>a.data.localeCompare(b.data)),ds=descSoltos(de,ate);const tot=r2(l.reduce((s,r)=>s+Number(r.valor||0),0)),td=r2(l.reduce((s,r)=>s+Number(r.desconto||0),0)+ds.reduce((s,a)=>s+Number(a.valor||0),0));
   const pf={};l.forEach(r=>pf[r.forma||'—']=r2((pf[r.forma||'—']||0)+Number(r.valor)));
-  return{titulo:'Recebimentos',sub:[rotPer(de,ate)],xlsNome:'Recebimentos',blocos:[{kv:[['Recebimentos',String(l.length)],['Total recebido',fmtR(tot),'#1f8f4e',true]].concat(Object.entries(pf).map(([k,v])=>['— '+k,fmtR(v)]))},
-    {cols:[{t:'Data',w:11},{t:'Cliente',w:32},{t:'Forma',w:14},{t:'Doc.',w:12},{t:'Vendedor',w:14},{t:'Valor',w:14,al:'r'}],linhas:l.map(r=>[fmtData(r.data),r.cliente,r.forma||'',r.doc||'',r.vendedor||'',fmtR(r.valor)]),total:['TOTAL','','','','',fmtR(tot)]}]};
+  const linhas=l.map(r=>[r.data,fmtData(r.data),r.cliente,r.forma||'',r.doc||'',r.vendedor||'',fmtR(r.valor),r.desconto?fmtR(r.desconto):'']).concat(ds.map(a=>[a.data,fmtData(a.data),a.cliente,'Só desconto','',a.vendedor||'','',fmtR(a.valor)])).sort((x,y)=>x[0].localeCompare(y[0])).map(x=>x.slice(1));
+  return{titulo:'Recebimentos',sub:[rotPer(de,ate)],xlsNome:'Recebimentos',blocos:[{kv:[['Recebimentos',String(l.length)],['Total recebido',fmtR(tot),'#1f8f4e',true]].concat(td?[['Descontos concedidos',fmtR(td),'#b3261e']]:[]).concat(Object.entries(pf).map(([k,v])=>['— '+k,fmtR(v)]))},
+    {cols:[{t:'Data',w:11},{t:'Cliente',w:28},{t:'Forma',w:12},{t:'Doc.',w:10},{t:'Vendedor',w:12},{t:'Valor',w:13,al:'r'},{t:'Desconto',w:12,al:'r'}],linhas,total:['TOTAL','','','','',fmtR(tot),td?fmtR(td):'']}]};
 }
 function relCobranca(){
   const cart=carteira().filter(({t})=>t.atraso>Number(cad.params.tolerancia||0)).sort((a,b)=>ordTxt(a.c.nome,b.c.nome)||a.t.venc.localeCompare(b.t.venc));const tot=r2(cart.reduce((s,x)=>s+x.t.aberto,0));
@@ -733,22 +736,25 @@ ACOES.gdesp={per(v){aplicaPer(gq2,v);render()},novoBag(){if(!quem()){escolherQue
 const gr2={per:'7',de:'',ate:'',cli:'',forma:''};
 ENTRAR.greceb=()=>{aplicaPer(gr2,'7');gr2.cli='';gr2.forma=''};
 const recFiltro=()=>db.receb.filter(r=>naFaixa(r.data,gr2.de,gr2.ate)&&(!gr2.cli||r.clienteId===gr2.cli)&&(!gr2.forma||r.forma===gr2.forma)).sort((a,b)=>b.data.localeCompare(a.data)||String(b.registradoEm||'').localeCompare(String(a.registradoEm||'')));
-RENDER.greceb=()=>{const l=recFiltro(),tot=r2(l.reduce((s,r)=>s+Number(r.valor||0),0));
+RENDER.greceb=()=>{const l=recFiltro(),tot=r2(l.reduce((s,r)=>s+Number(r.valor||0),0)),ds=gr2.forma?[]:descSoltos(gr2.de,gr2.ate,gr2.cli),td=r2(l.reduce((s,r)=>s+Number(r.desconto||0),0)+ds.reduce((s,a)=>s+Number(a.valor||0),0));
   const clis=[...new Map(db.receb.map(r=>[r.clienteId,r.cliente])).entries()].sort((a,b)=>ordTxt(a[1],b[1])),formas=[...new Set(db.receb.map(r=>r.forma).filter(Boolean))].sort(ordTxt);
   const pf={};l.forEach(r=>pf[r.forma||'—']=r2((pf[r.forma||'—']||0)+Number(r.valor)));
   let h=`<section class="panel"><h2>Filtros</h2>${perHtml(gr2)}${selSetas('Cliente','cli',[['','Todos os clientes']].concat(clis),gr2.cli)}${selSetas('Forma de pagamento','forma',[['','Todas as formas']].concat(formas.map(f=>[f,f])),gr2.forma)}</section>
-   <section class="panel">${titNovo('Recebimentos','novoRec')}<div class="stat"><div><small>Recebimentos</small><b class="num">${l.length}</b></div><div><small>Total recebido</small><b class="num pos">${fmtR(tot).replace('R$ ','')}</b></div></div>
+   <section class="panel">${titNovo('Recebimentos','novoRec')}<div class="stat"><div><small>Recebimentos</small><b class="num">${l.length}</b></div><div><small>Total recebido</small><b class="num pos">${fmtR(tot).replace('R$ ','')}</b></div>${td?`<div><small>Descontos</small><b class="num neg">${fmtR(td).replace('R$ ','')}</b></div>`:''}</div>
    ${Object.keys(pf).length>1?`<div class="kv">${Object.entries(pf).map(([k,v])=>`<div><span>${esc(k)}</span><b>${fmtR(v)}</b></div>`).join('')}</div>`:''}`;
-  let dia='';l.forEach(r=>{if(r.data!==dia){dia=r.data;h+=`<div class="dia"><span>${nomeDia(dia)}, ${fmtData(dia)}</span><span>${fmtR(r2(l.filter(x=>x.data===dia).reduce((s,x)=>s+Number(x.valor),0)))}</span></div>`}
-    h+=`<button class="reg" data-a="ed" data-v="${r.id}"><div><span class="eqn">${esc(r.cliente)}</span><div class="faz">${esc(r.forma||'')}${r.doc?' · '+esc(r.doc):''}${r.vendedor?' · '+esc(r.vendedor):''}</div>${r.obs?`<div class="obs">${esc(r.obs)}</div>`:''}</div><div class="lt mais">${fmtR(r.valor)}</div></button>`});
-  if(!l.length)h+='<div class="vazio">Nenhum recebimento no filtro.</div>';
-  h+=`${l.length?botoesExp():''}<p class="note">Toque num recebimento para ver, editar ou excluir.</p></section>`;
+  const L=l.map(r=>({k:'r',d:r.data,r})).concat(ds.map(a=>({k:'a',d:a.data,r:a}))).sort((x,y)=>y.d.localeCompare(x.d));
+  let dia='';L.forEach(({k,r})=>{if(r.data!==dia){dia=r.data;h+=`<div class="dia"><span>${nomeDia(dia)}, ${fmtData(dia)}</span><span>${fmtR(r2(l.filter(x=>x.data===dia).reduce((s,x)=>s+Number(x.valor),0)))}</span></div>`}
+    if(k==='a'){h+=`<button class="reg" data-a="edAj" data-v="${r.id}"><div><span class="eqn">${esc(r.cliente)}</span><div class="faz">Só desconto${r.vendedor?' · '+esc(r.vendedor):''}</div></div><div class="lt neg">−${fmtR(r.valor)}<small>desconto</small></div></button>`;return}
+    h+=`<button class="reg" data-a="ed" data-v="${r.id}"><div><span class="eqn">${esc(r.cliente)}</span><div class="faz">${esc(r.forma||'')}${r.doc?' · '+esc(r.doc):''}${r.vendedor?' · '+esc(r.vendedor):''}</div>${r.desconto?`<div class="obs" style="color:var(--bad)">Desconto: ${fmtR(r.desconto)}</div>`:''}${r.obs?`<div class="obs">${esc(r.obs)}</div>`:''}</div><div class="lt mais">${fmtR(r.valor)}</div></button>`});
+  if(!L.length)h+='<div class="vazio">Nenhum recebimento no filtro.</div>';
+  h+=`${L.length?botoesExp():''}<p class="note">Toque num recebimento para ver, editar ou excluir.</p></section>`;
   $('t-greceb').innerHTML=h};
 CAMPOS.greceb=(f,el)=>{if(f==='de'||f==='ate'){gr2[f]=el.value;gr2.per='';ajustaPar(gr2,f);render();return}if(f==='cli'||f==='forma'){gr2[f]=el.value;render()}};
-ACOES.greceb={per(v){aplicaPer(gr2,v);render()},novoRec(){if(!quem()){escolherQuem(()=>ir('rec'));return}ir('rec')},ed(id){const r=db.receb.find(x=>x.id===id);if(r)editarReceb(r)},
-  exp(t){const l=recFiltro().slice().reverse(),tot=r2(l.reduce((s,r)=>s+Number(r.valor||0),0)),c=gr2.cli&&cliPorId(gr2.cli);
-    const r={titulo:'Recebimentos',sub:[rotPer(gr2.de,gr2.ate),c?c.nome:'',gr2.forma].filter(Boolean),xlsNome:'Recebimentos',blocos:[{kv:[['Recebimentos',String(l.length)],['Total recebido',fmtR(tot),'#1f8f4e',true]]},
-      {cols:[{t:'Data',w:11},{t:'Cliente',w:32},{t:'Forma',w:14},{t:'Doc.',w:12},{t:'Vendedor',w:14},{t:'Valor',w:14,al:'r'}],linhas:l.map(r=>[fmtData(r.data),r.cliente,r.forma||'',r.doc||'',r.vendedor||'',fmtR(r.valor)]),total:['TOTAL','','','','',fmtR(tot)]}]};
+ACOES.greceb={per(v){aplicaPer(gr2,v);render()},novoRec(){if(!quem()){escolherQuem(()=>ir('rec'));return}ir('rec')},ed(id){const r=db.receb.find(x=>x.id===id);if(r)editarReceb(r)},edAj(id){const a=db.ajustes.find(x=>x.id===id);if(a)editarAjuste(a)},
+  exp(t){const l=recFiltro().slice().reverse(),tot=r2(l.reduce((s,r)=>s+Number(r.valor||0),0)),c=gr2.cli&&cliPorId(gr2.cli),ds=gr2.forma?[]:descSoltos(gr2.de,gr2.ate,gr2.cli),td=r2(l.reduce((s,r)=>s+Number(r.desconto||0),0)+ds.reduce((s,a)=>s+Number(a.valor||0),0));
+    const lin=l.map(r=>[r.data,fmtData(r.data),r.cliente,r.forma||'',r.doc||'',r.vendedor||'',fmtR(r.valor),r.desconto?fmtR(r.desconto):'']).concat(ds.map(a=>[a.data,fmtData(a.data),a.cliente,'Só desconto','',a.vendedor||'','',fmtR(a.valor)])).sort((x,y)=>x[0].localeCompare(y[0])).map(x=>x.slice(1));
+    const r={titulo:'Recebimentos',sub:[rotPer(gr2.de,gr2.ate),c?c.nome:'',gr2.forma].filter(Boolean),xlsNome:'Recebimentos',blocos:[{kv:[['Recebimentos',String(l.length)],['Total recebido',fmtR(tot),'#1f8f4e',true]].concat(td?[['Descontos concedidos',fmtR(td),'#b3261e']]:[])},
+      {cols:[{t:'Data',w:11},{t:'Cliente',w:28},{t:'Forma',w:12},{t:'Doc.',w:10},{t:'Vendedor',w:12},{t:'Valor',w:13,al:'r'},{t:'Desconto',w:12,al:'r'}],linhas:lin,total:['TOTAL','','','','',fmtR(tot),td?fmtR(td):'']}]};
     return exportarRel(r,t,`Recebimentos ${rotPer(gr2.de,gr2.ate).replace(/\//g,'-')}`)}};
 
 /* números dos quadradinhos: diminui a letra até caber (sem cortar com "…") */

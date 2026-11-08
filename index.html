@@ -324,7 +324,7 @@ body.naInicio .gIniBar{display:none}
 .atalhos{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 2px}.atalhos .mini{flex:1 1 0;min-width:0;padding:8px 4px;font-size:.85rem;border-radius:10px}.atalhos .mini.sel{background:var(--accent);border-color:var(--accent);color:#fff}
 .selNav{margin-top:8px}.selLinha{display:flex;gap:6px;align-items:stretch}.selLinha select{flex:1;min-width:0;margin:0}.selLinha .gSeta{flex:none;width:46px;padding:0;font-size:1.1rem;background:var(--accent);border-color:var(--accent);color:#fff;border-radius:10px}
 .combo{position:relative}.combo input{padding-right:48px}.comboSeta{position:absolute;right:4px;top:4px;bottom:4px;width:42px;padding:0;min-height:0;border:0;background:transparent;color:var(--accent);font-size:1.3rem}.comboLista{position:absolute;left:0;right:0;top:100%;z-index:30;background:#fff;border:1px solid var(--line,#cfd8e3);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.18);max-height:260px;overflow:auto;margin-top:4px}.comboLista button{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid #eef2f6;border-radius:0;background:#fff;padding:12px 14px;margin:0;font-weight:600;min-height:0}.comboLista button.sel{background:var(--accent);color:#fff}
-.dSetas{display:flex;gap:6px;align-items:stretch}.dSetas input{flex:1;min-width:0;margin:0;text-align:center}.dSetas .gSeta{flex:none;width:44px;padding:0;min-height:44px;font-size:1.05rem;background:var(--accent);border-color:var(--accent);color:#fff;border-radius:10px}.datas:has(.dSetas){grid-template-columns:1fr!important}
+.dSetas{display:flex;gap:6px;align-items:stretch}.dSetas input{flex:1;min-width:0;margin:0;text-align:center}.dSetas .gSeta{flex:none;width:44px;padding:0;min-height:44px;font-size:1.05rem;background:var(--accent);border-color:var(--accent);color:#fff;border-radius:10px}.datas:has(.dSetas):not(.perDatas){grid-template-columns:1fr!important}
 .curhead .novoBt{flex:none;width:auto;min-height:0;padding:7px 14px;margin:0;border-radius:99px;background:var(--accent);border-color:var(--accent);color:#fff;font-weight:800;font-size:.9rem}
 .eqLinha .excluirBt{color:var(--bad);border-color:#f0c4c0;background:#fff}.excluirCli{color:var(--bad);border-color:var(--bad);background:#fff;margin-top:8px}
 .curhead:has(.novoBt){flex-wrap:nowrap;align-items:center}.curhead:has(.novoBt) h2{flex:1;min-width:0;margin-bottom:0}
@@ -337,6 +337,10 @@ body.naInicio .gIniBar{display:none}
 .gTiles .gIc,.gCfgTiles .gIc{display:flex;align-items:center;justify-content:center;flex:none;width:3.2rem;height:3.2rem;font-size:2.5rem!important;line-height:1}
 .gCfgTiles .gIc{width:2.4rem;height:2.4rem;font-size:1.9rem!important}
 .gIc .icoRede{width:100%!important;height:100%!important;vertical-align:0}
+/* período De · Até na mesma linha */
+.perDatas{grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:8px!important}
+.perDatas .dSetas{gap:3px}.perDatas .dSetas .gSeta{width:30px;min-height:42px;font-size:.8rem;border-radius:8px}
+.perDatas .dataTxt{min-height:42px;font-size:14px!important;padding:0 2px!important;gap:0;letter-spacing:-.02em}.perDatas .dataTxt::after{content:none}
 </style>
 </head>
 <body class="naInicio">
@@ -440,7 +444,7 @@ body.naInicio .gIniBar{display:none}
    ===================================================================== */
 const PRAZO=5*60*1000; // quem lançou pode editar/excluir por 5 minutos sem senha
 const API_PADRAO='https://script.google.com/macros/s/AKfycbwcOrQCcLUC2FmLZPAGfmJNChxdtbh80tajcaMXLvrJaAqedwJXFuZCsDIaxQl2E67gIw/exec'; // link do Google Script (/exec) — colar aqui depois de publicar o Code.gs
-const VERSAO='14';
+const VERSAO='16';
 const K={cad:'pc_cad',db:'pc_db',fila:'pc_fila',pend:'pc_pend',api:'pc_api',disp:'pc_disp',quem:'pc_quem',rascV:'pc_rascV',sync:'pc_sync',gest:'pc_gestOk'};
 const TABS=['vendas','receb','ajustes','bags','doacoes','custos','repasses'];
 const CATS=['Ração','Oxigênio / Aeração','Combustível / Transporte','Gelo','Mão de obra (fixa)','Mão de obra (diárias)','Insumos veterinários','Energia elétrica','Manutenção / Equipamentos','Alimentação','Hospedagem','Despesas administrativas','Investimentos','Outros'];
@@ -1031,7 +1035,7 @@ RENDER.vend=()=>{
     h+=`<div class="totVenda"><div><small>Peso total</small><b id="tvP">${fmtKg(pesoVenda(fv))} kg</b></div><div style="text-align:right"><small>Valor da venda</small><b id="tvV">${fmtR(valorVenda(fv))}</b></div></div>
       <div class="row"><button class="cancelarBtn" data-a="cancelar">Cancelar</button><button class="verde" data-a="gravar" style="flex:2 1 auto">✔ GRAVAR VENDA</button></div>`;
   }
-  h+=vendasHojeHtml();
+  /* editar/excluir: em Vendas › Vendas efetivadas, a qualquer hora */
   el.innerHTML=h;
 };
 function recentesHtml(tab,topo,linha){const r=recentes(tab);if(!r.length)return'';
@@ -1161,7 +1165,7 @@ RENDER.rec=()=>{
     <label>Forma</label><div class="chips">${FORMAS.map(x=>`<button data-a="forma" data-v="${x}" class="${fr.forma===x?'sel':''}">${x}</button>`).join('')}</div>
     <div class="datas"><div><label>Comprovante / doc.</label><input type="text" data-f="doc" value="${esc(fr.doc)}"></div><div><label>Observação</label><input type="text" data-f="obs" value="${esc(fr.obs)}"></div></div>
     <div class="row"><button class="cancelarBtn" data-a="cancelar">Cancelar</button><button class="verde" data-a="gravar" style="flex:2 1 auto">✔ GRAVAR RECEBIMENTO</button></div></section>`}
-  h+=recentesHtml('receb',r=>`<b>${esc(r.cliente)}</b><span class="litros">${fmtR(r.valor)}</span>`,r=>`${esc(r.forma||'')} · ${fmtData(r.data)}`);
+  /* editar/excluir: em Vendas › Recebimentos, a qualquer hora */
   el.innerHTML=h;
 };
 CAMPOS.rec=(f,el,ev)=>{if(f==='busca'){if(ev!=='input')return;fr.busca=el.value;atualizaBusca(el,clientesGrade(fr.busca,null,{porSaldo:true}));return}
@@ -1188,14 +1192,19 @@ function textoRecibo(r){const P=cad.params;const sal=posicao(r.clienteId).aberto
   return [`*${P.empresa}* — Recibo`,`_${P.unidade}_`,'',`Recebemos de *${r.cliente}* o valor de *${fmtR(r.valor)}* (${r.forma}) em ${fmtData(r.data)}.`,r.doc?`Comprovante: ${r.doc}`:'','',`Saldo em aberto após este pagamento: *${fmtR(sal)}*`,'',P.empresa,P.contato||''].filter((x,i,a)=>x!==''||a[i-1]!=='').join('\n').trim()}
 function editarReceb(r){
   const ed=()=>janela(`<h3>✏️ Recebimento — ${esc(r.cliente)}</h3><div><label>Data</label><input type="date" id="jD" value="${r.data}"></div><div><label>Valor</label><input type="text" class="big" id="jV" inputmode="decimal" value="${txtBR(r.valor)}"></div>
-    <div><label>Forma</label><select id="jF">${FORMAS.map(f=>`<option ${f===r.forma?'selected':''}>${f}</option>`).join('')}</select></div><div class="datas"><div><label>Doc.</label><input type="text" id="jDc" value="${esc(r.doc||'')}"></div><div><label>Obs.</label><input type="text" id="jO" value="${esc(r.obs||'')}"></div></div>
+    <div><label>Desconto (R$)</label><input type="text" id="jDs" inputmode="decimal" value="${r.desconto?txtBR(r.desconto):''}" placeholder="R$ 0,00"></div>
+    <div><label>Forma</label><select id="jF">${(FORMAS.includes(r.forma)||!r.forma?FORMAS:FORMAS.concat([r.forma])).map(f=>`<option ${f===r.forma?'selected':''}>${f}</option>`).join('')}</select></div><div class="datas"><div><label>Doc.</label><input type="text" id="jDc" value="${esc(r.doc||'')}"></div><div><label>Obs.</label><input type="text" id="jO" value="${esc(r.obs||'')}"></div></div>
     <div class="row"><button class="danger" id="jX">🗑 Excluir</button><button class="primary" id="jS">Salvar</button></div>`,(j,fechar)=>{
-    j.querySelector('#jX').onclick=()=>{fechar();confirmarExcluir(`Excluir recebimento de ${fmtR(r.valor)}?`,()=>{apagarReg('receb',r.id);render();toast('Excluído')})};
+    j.querySelector('#jX').onclick=()=>{fechar();confirmarExcluir(`Excluir recebimento de ${fmtR(r.valor)}${r.desconto?' (e o desconto de '+fmtR(r.desconto)+')':''}?`,()=>{if(r.ajusteId&&db.ajustes.some(a=>a.id===r.ajusteId))apagarReg('ajustes',r.ajusteId);apagarReg('receb',r.id);render();toast('Excluído')})};
     j.querySelector('#jS').onclick=()=>{const v=r2(numBR(j.querySelector('#jV').value));if(!(v>0)){toast('Valor inválido');return}
-      salvarReg('receb',{...r,data:j.querySelector('#jD').value||r.data,valor:v,forma:j.querySelector('#jF').value,doc:j.querySelector('#jDc').value.trim(),obs:j.querySelector('#jO').value.trim()},false);fechar();render();toast('Recebimento salvo')}});
+      const dsc=r2(numBR(j.querySelector('#jDs').value))||0,dt=j.querySelector('#jD').value||r.data,n={...r,data:dt,valor:v,forma:j.querySelector('#jF').value,doc:j.querySelector('#jDc').value.trim(),obs:j.querySelector('#jO').value.trim()};
+      const aj=r.ajusteId&&db.ajustes.find(a=>a.id===r.ajusteId);
+      if(dsc>0){if(aj)salvarReg('ajustes',{...aj,valor:dsc,data:dt},false);else{const a2={id:'aj-'+uid(),clienteId:r.clienteId,cliente:r.cliente,tipo:'C',data:dt,valor:dsc,desc:'Desconto no recebimento',vendedor:r.vendedor||quem()};salvarReg('ajustes',a2,true);n.ajusteId=a2.id}n.desconto=dsc}
+      else{if(aj)apagarReg('ajustes',aj.id);delete n.desconto;delete n.ajusteId}
+      salvarReg('receb',n,false);fechar();render();toast('Recebimento salvo')}});
   if(ehRecente(r.id))ed();else comSenha(ed);
 }
-function excluirReceb(r){const vai=()=>confirmarExcluir(`Excluir recebimento de ${r.cliente} (${fmtR(r.valor)})?`,()=>{apagarReg('receb',r.id);render();toast('Excluído')});if(ehRecente(r.id))vai();else comSenha(vai)}
+function excluirReceb(r){const vai=()=>confirmarExcluir(`Excluir recebimento de ${r.cliente} (${fmtR(r.valor)})?`,()=>{if(r.ajusteId&&db.ajustes.some(a=>a.id===r.ajusteId))apagarReg('ajustes',r.ajusteId);apagarReg('receb',r.id);render();toast('Excluído')});if(ehRecente(r.id))vai();else comSenha(vai)}
 
 /* =====================================================================
    DESPESCA (pesagem dos bags na fazenda)
