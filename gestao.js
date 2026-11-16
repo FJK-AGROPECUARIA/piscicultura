@@ -434,6 +434,7 @@ RENDER.gconf=()=>{const P=cad.params;
    <section class="panel">${titNovo('Vendedores / quem lança','addVend')}<div class="fzBloco">${naoExcl(cad.vendedores).sort((a,b)=>ordTxt(a.nome,b.nome)).map(v=>linhaCad(v,'vendedores')).join('')||'<div class="eqLinha"><span class="note">Ninguém ainda.</span></div>'}</div></section>
    <section class="panel"><h2>Despescas</h2><p class="note">Criadas sozinhas por semana (segunda a domingo). Encerre/reabra no Fechamento.</p>${despescasOrd().map(d=>`<div class="eqLinha"><span>${esc(d.descricao)}</span>${d.encerrada?'<span class="estado fechada">encerrada</span>':'<span class="estado aberta">aberta</span>'}<button class="mini" data-a="renD" data-v="${d.id}">✏️</button></div>`).join('')||'<div class="vazio">Nenhuma ainda.</div>'}</section>
    <section class="panel"><h2>Cópia de segurança</h2><p class="note">Tudo fica salvo no aparelho e na planilha do Google. Aqui você baixa uma planilha Excel com todos os lançamentos.</p><button class="verde" data-a="tudo">📊 Exportar tudo (Excel)</button>
+    <p class="note">Backup na nuvem: salva o banco de dados e os códigos do sistema na pasta <b>FJK - PISCICULTURA</b> do Google Drive. O automático é feito todo dia às 2h. Ficam guardados os 20 mais recentes de cada (manual e automático).</p><button class="lima" data-a="backupNuvem">☁️ Fazer backup agora</button>
     <p class="note">Neste aparelho: ${db.vendas.length} vendas · ${db.receb.length} recebimentos · ${db.bags.length} bags · ${ativos(cad.clientes).length} clientes · ${fila.length} aguardando envio.</p></section>
    <details class="panel avancado"><summary><h2>Avançado · conexão com a nuvem</h2></summary><p class="note">Link do Google Script (termina em /exec) onde ficam salvos todos os lançamentos.</p>
     <input type="text" id="apiUrl" inputmode="url" autocomplete="off" value="${esc(ler(K.api,'')||API_PADRAO)}" placeholder="https://script.google.com/macros/s/…/exec"><button data-a="salvarApi">Salvar link</button>
@@ -445,6 +446,13 @@ ACOES.gconf={
   addVend(){addSimples('vendedores','Novo vendedor','v-',false)},exc(v){const[l,id]=v.split(':');excluirCad(l,id)},
   ren(v){ACOES.gpeix.ren(v)},inat(v){ACOES.gpeix.inat(v)},reat(v){ACOES.gpeix.reat(v)},
   renD(id){const d=despPorId(id);campoTexto('Nome da despesca',d.descricao,n=>{d.descricao=n;toque(d);salvarCad('Salvo');render()})},
+  async backupNuvem(){const bt=document.querySelector('[data-a="backupNuvem"]');
+    if(!navigator.onLine){toast('Sem internet. Tente de novo quando tiver sinal.');return}
+    if(bt){bt.disabled=true;bt.textContent='Fazendo backup… (pode levar 1 minuto)'}
+    try{const j=await (await fetch(apiUrl(),{method:'POST',body:JSON.stringify({acao:'backup'})})).json();
+      toast(j&&j.ok?'Backup feito: banco de dados e códigos':'Backup com problema: '+((j&&(j.erroBanco||j.erroCodigo||j.erro))||'erro'));
+    }catch(e){toast('Não consegui fazer o backup: '+(e.message||e))}
+    if(bt&&bt.isConnected){bt.disabled=false;bt.textContent='☁️ Fazer backup agora'}},
   tudo(){compartilharArquivo(xlsxTudo(),`Piscicultura FJK - tudo ${fmtData(chaveDia()).replace(/\//g,'-')}.xlsx`,XT)},
   salvarApi(){const v=$('apiUrl').value.trim();if(v&&!/^https:\/\/script\.google\.com\/.+\/exec$/.test(v)){toast('O link precisa começar com https://script.google.com e terminar em /exec');return}gravar(K.api,v);toast('Link salvo');carregar()}};
 
